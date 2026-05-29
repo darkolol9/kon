@@ -82,4 +82,5 @@ jobs:
             kon-*.tar.gz
             kon-*.zip
             SHA256SUMS
+            install.sh
           generate_release_notes: true
