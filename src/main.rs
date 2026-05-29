@@ -159,7 +159,12 @@ async fn cmd_repl(config: &Config) -> Result<(), String> {
     match active {
         Some((name, conn)) => {
             let db = db::Database::connect(conn).await?;
-            let app = repl::App::new(db, name.to_string());
+            let header = if conn.database == "mysql" {
+                name.to_string()
+            } else {
+                format!("{} ({})", name, conn.database)
+            };
+            let app = repl::App::new(db, header);
             let terminal = ratatui::init();
             repl::run(terminal, app).await
         }

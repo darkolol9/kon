@@ -8,7 +8,19 @@ use crate::db::QueryResult;
 use crate::repl::syntax;
 use crate::repl::{App, AppState, QueryBlock};
 
-fn format_result(result: &QueryResult) -> Vec<Line<'static>> {
+const MAX_COL_WIDTH: usize = 40;
+
+fn truncate(s: &str, max: usize) -> String {
+    if s.len() <= max {
+        s.to_string()
+    } else {
+        let mut t: String = s.chars().take(max.saturating_sub(3)).collect();
+        t.push_str("...");
+        t
+    }
+}
+
+pub fn format_result(result: &QueryResult) -> Vec<Line<'static>> {
     let mut lines: Vec<Line<'static>> = Vec::new();
 
     let col_count = result.columns.len();
@@ -32,7 +44,7 @@ fn format_result(result: &QueryResult) -> Vec<Line<'static>> {
                 .filter_map(|row| row.get(i).and_then(|v| v.as_deref().map(|s| s.len())))
                 .max()
                 .unwrap_or(0);
-            std::cmp::max(max_data, col.len())
+            std::cmp::max(max_data, col.len()).min(MAX_COL_WIDTH)
         })
         .collect();
 
@@ -46,7 +58,10 @@ fn format_result(result: &QueryResult) -> Vec<Line<'static>> {
         .columns
         .iter()
         .enumerate()
-        .map(|(i, col)| format!(" {:width$} ", col, width = col_widths[i]))
+        .map(|(i, col)| {
+            let c = truncate(col, MAX_COL_WIDTH);
+            format!(" {:width$} ", c, width = col_widths[i])
+        })
         .collect::<Vec<_>>()
         .join("│");
 
@@ -59,7 +74,8 @@ fn format_result(result: &QueryResult) -> Vec<Line<'static>> {
             .iter()
             .enumerate()
             .map(|(i, val)| {
-                let s = val.as_deref().unwrap_or("NULL");
+                let raw = val.as_deref().unwrap_or("NULL");
+                let s = truncate(raw, MAX_COL_WIDTH);
                 if val.is_none() {
                     Span::styled(
                         format!(" {:width$} ", s, width = col_widths[i]),
@@ -89,6 +105,23 @@ fn format_result(result: &QueryResult) -> Vec<Line<'static>> {
     lines.push(Line::from(summary).green());
 
     lines
+}
+
+pub fn format_block_as_text(block: &QueryBlock) -> String {
+    let mut out = String::new();
+    out.push_str(&format!("mysql> {}\n", block.sql));
+    if let Some(result) = &block.result {
+        for line in format_result(result) {
+            let text: String = line.spans.iter().map(|s| s.content.as_ref()).collect();
+            out.push_str(&text);
+            out.push('\n');
+        }
+    }
+    if let Some(err) = &block.error {
+        out.push_str(&format!("ERROR: {err}\n"));
+    }
+    out.push('\n');
+    out
 }
 
 fn render_query_block(block: &QueryBlock) -> Vec<Line<'static>> {
@@ -220,6 +253,7 @@ fn render_status(frame: &mut Frame, area: Rect, app: &App) {
                     parts.push(format!(" Tab: {} ({}/{})", cand, idx, total));
                 }
             }
+            parts.push("Ctrl+O:Editor".to_string());
             parts.push("Ctrl+D:Quit".to_string());
             parts.push("PgUp/PgDn:Scroll".to_string());
             parts.reverse();
