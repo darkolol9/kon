@@ -70,7 +70,9 @@ impl App {
     pub fn delete_at(&mut self) {
         if self.cursor < self.input.len() {
             let next = self.input[self.cursor..].char_indices().nth(1);
-            let end = next.map(|(i, _)| self.cursor + i).unwrap_or(self.input.len());
+            let end = next
+                .map(|(i, _)| self.cursor + i)
+                .unwrap_or(self.input.len());
             self.input.drain(self.cursor..end);
         }
     }
@@ -188,69 +190,67 @@ pub async fn run(mut terminal: DefaultTerminal, mut app: App) -> Result<(), Stri
             .draw(|frame| ui::render(frame, &app))
             .map_err(|e| format!("Render failed: {e}"))?;
 
-        if event::poll(Duration::from_millis(50))
-            .map_err(|e| format!("Event poll failed: {e}"))?
+        if event::poll(Duration::from_millis(50)).map_err(|e| format!("Event poll failed: {e}"))?
             && let Event::Key(key) = event::read().map_err(|e| format!("Event read: {e}"))?
-                && key.kind == KeyEventKind::Press {
-                    if let AppState::Executing = app.state {
-                        continue;
-                    }
-                    match key.code {
-                        KeyCode::Char('c') if key.modifiers == CTRL => {
-                            app.should_quit = true;
-                        }
-                        KeyCode::Char('d') if key.modifiers == CTRL => {
-                            app.should_quit = true;
-                        }
-                        KeyCode::Enter => {
-                            app.execute_current().await;
-                        }
-                        KeyCode::Backspace => {
-                            app.delete_before();
-                        }
-                        KeyCode::Delete => {
-                            app.delete_at();
-                        }
-                        KeyCode::Left => {
-                            app.move_left();
-                        }
-                        KeyCode::Right => {
-                            app.move_right();
-                        }
-                        KeyCode::Home => {
-                            app.move_home();
-                        }
-                        KeyCode::End => {
-                            app.move_end();
-                        }
-                        KeyCode::Up if !app.input.is_empty()
-                            || app.history_pos.is_some() =>
-                        {
-                            app.history_back();
-                        }
-                        KeyCode::Down if app.history_pos.is_some() => {
-                            app.history_forward();
-                        }
-                        KeyCode::Tab => {
-                            if let Some((new_input, new_cursor)) =
-                                app.completion.complete(&app.input, app.cursor)
-                            {
-                                app.input = new_input;
-                                app.cursor = new_cursor;
-                            }
-                        }
-                        KeyCode::PageUp => {
-                            app.scroll_up();
-                        }
-                        KeyCode::PageDown => {
-                            app.scroll_down();
-                        }
-                        KeyCode::Char(c) => {
-                            app.insert_char(c);
-                        }
-                        _ => {}
+            && key.kind == KeyEventKind::Press
+        {
+            if let AppState::Executing = app.state {
+                continue;
+            }
+            match key.code {
+                KeyCode::Char('c') if key.modifiers == CTRL => {
+                    app.should_quit = true;
+                }
+                KeyCode::Char('d') if key.modifiers == CTRL => {
+                    app.should_quit = true;
+                }
+                KeyCode::Enter => {
+                    app.execute_current().await;
+                }
+                KeyCode::Backspace => {
+                    app.delete_before();
+                }
+                KeyCode::Delete => {
+                    app.delete_at();
+                }
+                KeyCode::Left => {
+                    app.move_left();
+                }
+                KeyCode::Right => {
+                    app.move_right();
+                }
+                KeyCode::Home => {
+                    app.move_home();
+                }
+                KeyCode::End => {
+                    app.move_end();
+                }
+                KeyCode::Up if !app.input.is_empty() || app.history_pos.is_some() => {
+                    app.history_back();
+                }
+                KeyCode::Down if app.history_pos.is_some() => {
+                    app.history_forward();
+                }
+                KeyCode::Tab => {
+                    if let Some((new_input, new_cursor)) =
+                        app.completion.complete(&app.input, app.cursor)
+                    {
+                        app.input = new_input;
+                        app.cursor = new_cursor;
                     }
                 }
+                KeyCode::PageUp => {
+                    app.scroll_up();
+                }
+                KeyCode::PageDown => {
+                    app.scroll_down();
+                }
+                KeyCode::Char(c) => {
+                    app.insert_char(c);
+                }
+                _ => {}
+            }
+        }
 
         if app.should_quit {
             break;

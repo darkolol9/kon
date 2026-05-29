@@ -32,20 +32,14 @@ fn token_style(token: &Token) -> Option<Style> {
             Some(Style::new().fg(Color::Cyan).add_modifier(Modifier::BOLD))
         }
         Token::Word(_) => None,
-        Token::Number(_, _) => {
-            Some(Style::new().fg(Color::Yellow))
-        }
+        Token::Number(_, _) => Some(Style::new().fg(Color::Yellow)),
         Token::SingleQuotedString(_)
         | Token::DoubleQuotedString(_)
         | Token::TripleSingleQuotedString(_)
         | Token::TripleDoubleQuotedString(_)
-        | Token::NationalStringLiteral(_) => {
-            Some(Style::new().fg(Color::Green))
-        }
+        | Token::NationalStringLiteral(_) => Some(Style::new().fg(Color::Green)),
         Token::Whitespace(_) => None,
         Token::Comma => None,
-        _ => {
-            Some(Style::new().fg(Color::White).add_modifier(Modifier::DIM))
-        }
+        _ => Some(Style::new().fg(Color::White).add_modifier(Modifier::DIM)),
     }
 }

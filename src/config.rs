@@ -12,13 +12,11 @@ pub struct Connection {
     pub database: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     pub active_connection: Option<String>,
     pub connections: HashMap<String, Connection>,
 }
-
 
 impl Config {
     fn path() -> PathBuf {
@@ -52,7 +50,10 @@ impl Config {
     pub fn list_connections(&self) -> Vec<(&str, &Connection)> {
         let mut names: Vec<&str> = self.connections.keys().map(|s| s.as_str()).collect();
         names.sort();
-        names.into_iter().map(|n| (n, &self.connections[n])).collect()
+        names
+            .into_iter()
+            .map(|n| (n, &self.connections[n]))
+            .collect()
     }
 
     #[allow(dead_code)]

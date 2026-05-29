@@ -1,8 +1,8 @@
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::Paragraph;
-use ratatui::Frame;
 
 use crate::db::QueryResult;
 use crate::repl::syntax;
@@ -205,10 +205,7 @@ fn render_input(frame: &mut Frame, area: Rect, app: &App) {
 
     let cursor_x = area.x + (prefix_width + app.cursor) as u16;
     let cursor_y = area.y;
-    frame.set_cursor_position((
-        cursor_x.min(area.right().saturating_sub(1)),
-        cursor_y,
-    ));
+    frame.set_cursor_position((cursor_x.min(area.right().saturating_sub(1)), cursor_y));
 }
 
 fn render_status(frame: &mut Frame, area: Rect, app: &App) {

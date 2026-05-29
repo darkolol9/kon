@@ -161,7 +161,6 @@ async fn cmd_repl(config: &Config) -> Result<(), String> {
             let db = db::Database::connect(conn).await?;
             let app = repl::App::new(db, name.to_string());
             let terminal = ratatui::init();
-            
             repl::run(terminal, app).await
         }
         None => {

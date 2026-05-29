@@ -3,16 +3,84 @@ use std::collections::HashMap;
 use crate::db::Database;
 
 const SQL_KEYWORDS: &[&str] = &[
-    "SELECT", "FROM", "WHERE", "JOIN", "LEFT", "RIGHT", "INNER", "OUTER", "CROSS",
-    "ON", "AND", "OR", "NOT", "IN", "EXISTS", "BETWEEN", "LIKE", "IS", "NULL",
-    "AS", "ON", "SET", "VALUES", "INTO", "INSERT", "UPDATE", "DELETE", "CREATE",
-    "ALTER", "DROP", "TABLE", "INDEX", "VIEW", "DATABASE", "USE", "SHOW",
-    "DESCRIBE", "EXPLAIN", "ORDER", "BY", "GROUP", "HAVING", "LIMIT", "OFFSET",
-    "UNION", "ALL", "DISTINCT", "CASE", "WHEN", "THEN", "ELSE", "END",
-    "COUNT", "SUM", "AVG", "MIN", "MAX", "COALESCE", "IFNULL", "CAST",
-    "ASC", "DESC", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "CASCADE",
-    "GRANT", "REVOKE", "COMMIT", "ROLLBACK", "BEGIN", "TRANSACTION",
-    "TRUE", "FALSE", "WITH", "RECURSIVE", "RETURNING",
+    "SELECT",
+    "FROM",
+    "WHERE",
+    "JOIN",
+    "LEFT",
+    "RIGHT",
+    "INNER",
+    "OUTER",
+    "CROSS",
+    "ON",
+    "AND",
+    "OR",
+    "NOT",
+    "IN",
+    "EXISTS",
+    "BETWEEN",
+    "LIKE",
+    "IS",
+    "NULL",
+    "AS",
+    "ON",
+    "SET",
+    "VALUES",
+    "INTO",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "CREATE",
+    "ALTER",
+    "DROP",
+    "TABLE",
+    "INDEX",
+    "VIEW",
+    "DATABASE",
+    "USE",
+    "SHOW",
+    "DESCRIBE",
+    "EXPLAIN",
+    "ORDER",
+    "BY",
+    "GROUP",
+    "HAVING",
+    "LIMIT",
+    "OFFSET",
+    "UNION",
+    "ALL",
+    "DISTINCT",
+    "CASE",
+    "WHEN",
+    "THEN",
+    "ELSE",
+    "END",
+    "COUNT",
+    "SUM",
+    "AVG",
+    "MIN",
+    "MAX",
+    "COALESCE",
+    "IFNULL",
+    "CAST",
+    "ASC",
+    "DESC",
+    "PRIMARY",
+    "KEY",
+    "FOREIGN",
+    "REFERENCES",
+    "CASCADE",
+    "GRANT",
+    "REVOKE",
+    "COMMIT",
+    "ROLLBACK",
+    "BEGIN",
+    "TRANSACTION",
+    "TRUE",
+    "FALSE",
+    "WITH",
+    "RECURSIVE",
+    "RETURNING",
 ];
 
 pub struct CompletionEngine {
@@ -33,7 +101,9 @@ impl CompletionEngine {
     }
 
     pub fn current_candidate(&self) -> Option<&str> {
-        self.candidates.get(self.candidate_index).map(|s| s.as_str())
+        self.candidates
+            .get(self.candidate_index)
+            .map(|s| s.as_str())
     }
 
     pub fn candidate_count(&self) -> usize {
@@ -82,9 +152,7 @@ impl CompletionEngine {
             .find(|c: char| c.is_ascii_whitespace())
             .map(|i| cursor + i)
             .unwrap_or(input.len());
-        let mut result = String::with_capacity(
-            input.len() - (end - start) + replacement.len(),
-        );
+        let mut result = String::with_capacity(input.len() - (end - start) + replacement.len());
         result.push_str(&input[..start]);
         result.push_str(replacement);
         result.push_str(&input[end..]);
@@ -101,7 +169,14 @@ impl CompletionEngine {
 
         let word_upper = word.to_uppercase();
 
-        if word.is_empty() || word == self.candidates.get(self.candidate_index).map(|s| s.as_str()).unwrap_or("") {
+        if word.is_empty()
+            || word
+                == self
+                    .candidates
+                    .get(self.candidate_index)
+                    .map(|s| s.as_str())
+                    .unwrap_or("")
+        {
             if self.candidates.is_empty() {
                 return None;
             }
@@ -119,18 +194,14 @@ impl CompletionEngine {
         }
 
         for table in &self.tables {
-            if table.to_uppercase().starts_with(&word_upper)
-                && !self.candidates.contains(table)
-            {
+            if table.to_uppercase().starts_with(&word_upper) && !self.candidates.contains(table) {
                 self.candidates.push(table.clone());
             }
         }
 
         for cols in self.columns.values() {
             for col in cols {
-                if col.to_uppercase().starts_with(&word_upper)
-                    && !self.candidates.contains(col)
-                {
+                if col.to_uppercase().starts_with(&word_upper) && !self.candidates.contains(col) {
                     self.candidates.push(col.clone());
                 }
             }

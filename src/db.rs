@@ -1,10 +1,10 @@
 use crate::config::Connection;
-use sqlx::mysql::{MySqlPool, MySqlPoolOptions, MySqlRow};
-use sqlx::raw_sql;
 use sqlx::AssertSqlSafe;
 use sqlx::Column;
 use sqlx::Row;
 use sqlx::ValueRef;
+use sqlx::mysql::{MySqlPool, MySqlPoolOptions, MySqlRow};
+use sqlx::raw_sql;
 use std::time::Instant;
 
 #[allow(dead_code)]
@@ -151,9 +151,5 @@ fn is_query_statement(sql: &str) -> bool {
     }
     let upper = trimmed.to_uppercase();
     let starts = |s: &str| upper.starts_with(s);
-    starts("SELECT")
-        || starts("SHOW")
-        || starts("DESCRIBE")
-        || starts("EXPLAIN")
-        || starts("WITH")
+    starts("SELECT") || starts("SHOW") || starts("DESCRIBE") || starts("EXPLAIN") || starts("WITH")
 }
