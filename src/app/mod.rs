@@ -60,6 +60,9 @@ pub struct App {
     pub command_palette_selection: usize,
     pub all_palette_entries: Vec<PaletteEntry>,
     pub help_overlay_active: bool,
+    pub db_browser_visible: bool,
+    pub db_browser_databases: Vec<String>,
+    pub db_browser_selection: usize,
 
     // Connections panel
     pub connection_selection: usize,
@@ -114,6 +117,9 @@ impl App {
             command_palette_selection: 0,
             all_palette_entries,
             help_overlay_active: false,
+            db_browser_visible: false,
+            db_browser_databases: Vec::new(),
+            db_browser_selection: 0,
 
             connection_selection: 0,
             conn_mode: ConnectionMode::Browse,

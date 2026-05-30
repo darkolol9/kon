@@ -59,6 +59,14 @@ pub async fn run(mut terminal: DefaultTerminal, mut app: App) -> Result<(), Stri
                 Focus::ConnectionsList => handle_connections_key(&mut app, key.code).await,
                 Focus::ConnectionForm => handle_connection_form_key(&mut app, key.code).await,
                 Focus::SettingsList => handle_settings_key(&mut app, key.code),
+                Focus::DatabaseBrowser => {
+                    if ctrl && matches!(key.code, KeyCode::Char('d')) {
+                        app.db_browser_visible = false;
+                        app.focus = Focus::Input;
+                    } else {
+                        handle_database_key(&mut app, key.code).await;
+                    }
+                }
             }
         }
 
@@ -157,9 +165,8 @@ async fn handle_input_raw(
     alt: bool,
 ) {
     match code {
-        KeyCode::Char('c') | KeyCode::Char('d') | KeyCode::Char('q') if ctrl => {
-            app.should_quit = true
-        }
+        KeyCode::Char('c') | KeyCode::Char('q') if ctrl => app.should_quit = true,
+        KeyCode::Char('d') if ctrl => app.toggle_database_browser().await,
         KeyCode::Enter => app.execute_current().await,
         KeyCode::Char('o') if ctrl => {
             let _ = app.open_in_editor(terminal);
@@ -234,6 +241,7 @@ async fn handle_results_key(
         KeyCode::Char('p') if ctrl => app.open_command_palette(),
         KeyCode::Char('?') if ctrl => app.toggle_help(),
         KeyCode::Char('r') if ctrl => app.refresh_schema().await,
+        KeyCode::Char('d') if ctrl => app.toggle_database_browser().await,
         KeyCode::Left if alt => app.focus_prev_tab(),
         KeyCode::Right if alt => app.focus_next_tab(),
         KeyCode::Enter | KeyCode::Char('i') => {
@@ -269,6 +277,30 @@ async fn handle_schema_key(app: &mut App, code: KeyCode) {
         }
         KeyCode::Esc => {
             app.schema_browser_visible = false;
+            app.focus = Focus::Input;
+        }
+        _ => {}
+    }
+}
+
+// --- Database browser ---
+
+async fn handle_database_key(app: &mut App, code: KeyCode) {
+    match code {
+        KeyCode::Up => {
+            app.db_browser_selection = app.db_browser_selection.saturating_sub(1);
+        }
+        KeyCode::Down => {
+            let max = app.db_browser_databases.len().saturating_sub(1);
+            if app.db_browser_selection < max {
+                app.db_browser_selection += 1;
+            }
+        }
+        KeyCode::Enter => {
+            app.select_database(app.db_browser_selection).await;
+        }
+        KeyCode::Esc => {
+            app.db_browser_visible = false;
             app.focus = Focus::Input;
         }
         _ => {}

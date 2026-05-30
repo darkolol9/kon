@@ -39,6 +39,7 @@ pub enum Focus {
     ConnectionsList,
     ConnectionForm,
     SettingsList,
+    DatabaseBrowser,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

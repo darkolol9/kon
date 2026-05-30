@@ -208,6 +208,57 @@ impl App {
     }
 }
 
+/// Database browser
+impl App {
+    pub async fn toggle_database_browser(&mut self) {
+        if self.db_browser_visible {
+            self.db_browser_visible = false;
+            self.focus = Focus::Input;
+        } else {
+            self.state = AppState::Executing;
+            match self.db.fetch_databases().await {
+                Ok(dbs) => {
+                    self.db_browser_databases = dbs;
+                }
+                Err(e) => {
+                    self.state = AppState::Idle;
+                    self.set_toast(&format!("Failed to fetch databases: {e}"));
+                    return;
+                }
+            }
+            self.state = AppState::Idle;
+            self.db_browser_visible = true;
+            self.db_browser_selection = 0;
+            self.focus = Focus::DatabaseBrowser;
+        }
+    }
+
+    pub async fn select_database(&mut self, idx: usize) {
+        if let Some(db_name) = self.db_browser_databases.get(idx) {
+            let sql = format!("USE `{}`", db_name);
+            self.state = AppState::Executing;
+            match self.db.execute(&sql).await {
+                Ok(_) => {
+                    let base = self
+                        .conn_name
+                        .split(" > ")
+                        .next()
+                        .unwrap_or(&self.conn_name);
+                    self.conn_name = format!("{} > {}", base, db_name);
+                    self.completion.fetch_schema(&self.db).await;
+                    self.set_toast(&format!("Switched to database '{}'", db_name));
+                }
+                Err(e) => {
+                    self.set_toast(&format!("Failed to switch database: {e}"));
+                }
+            }
+            self.state = AppState::Idle;
+            self.db_browser_visible = false;
+            self.focus = Focus::Input;
+        }
+    }
+}
+
 /// Feature toggles
 impl App {
     pub fn toggle_schema_browser(&mut self) {

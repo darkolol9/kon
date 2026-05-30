@@ -19,13 +19,16 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
                 Line::from(" Press any key to close help")
             }
             (Panel::Editor, Focus::Input) => Line::from(
-                " ↵ Execute  ⌃P Palette  ⌃S Schema  ⌃H History  ⇥ Complete  ? Help  ⌃Q Quit  |  F1 Editor  F2 Conn  F3 Settings",
+                " ↵ Execute  ⌃D Databases  ⌃P Palette  ⌃S Schema  ⌃H History  ⇥ Complete  ? Help  ⌃Q Quit  |  F1 Editor  F2 Conn  F3 Settings",
             ),
             (Panel::Editor, Focus::Results) => Line::from(
-                " ⌃V Toggle View  ⌃O Open in Editor  ⌃P Palette  ⌃L/R Scroll  ? Help  |  F1 Editor  F2 Conn  F3 Settings",
+                " ⌃V Toggle View  ⌃D Databases  ⌃O Open in Editor  ⌃P Palette  ⌃L/R Scroll  ? Help  |  F1 Editor  F2 Conn  F3 Settings",
             ),
             (Panel::Editor, Focus::SchemaBrowser) => Line::from(
                 " ↑↓ Navigate  ↵ Insert SELECT  ⎋ Close  |  F1 Editor  F2 Conn  F3 Settings",
+            ),
+            (Panel::Editor, Focus::DatabaseBrowser) => Line::from(
+                " ↑↓ Navigate  ↵ Use Database  ⌃D Close  |  F1 Editor  F2 Conn  F3 Settings",
             ),
             (Panel::Editor, Focus::HistoryBrowser) => Line::from(
                 " ↑↓ Navigate  ↵ Paste to Input  ⎋ Close  |  F1 Editor  F2 Conn  F3 Settings",

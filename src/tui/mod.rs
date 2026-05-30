@@ -26,17 +26,6 @@ pub fn render(frame: &mut Frame, app: &App) {
     match app.active_panel {
         Panel::Editor => {
             editor::render(frame, layout.content, app);
-            // Completion popup above the input bar
-            if app.completion_active && !app.command_palette_active {
-                let input_height = 3u16;
-                let input_area = ratatui::layout::Rect::new(
-                    layout.content.x,
-                    layout.content.y + layout.content.height.saturating_sub(input_height),
-                    layout.content.width,
-                    input_height,
-                );
-                completion::render(frame, input_area, app);
-            }
         }
         Panel::Connections => {
             connections::render(frame, layout.content, app);
