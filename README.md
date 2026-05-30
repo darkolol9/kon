@@ -123,7 +123,7 @@ On connect, `kon` fetches the table and column schema. As you type, press `Tab` 
 
 ## Configuration
 
-Connections are stored in `~/.config/kon/config.toml`:
+readmeConnections are stored in `~/.config/kon/config.toml`:
 
 ```toml
 active_connection = "my-db"

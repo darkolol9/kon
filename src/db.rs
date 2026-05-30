@@ -122,8 +122,7 @@ fn row_columns(row: &MySqlRow) -> Vec<String> {
 fn row_values(row: &MySqlRow) -> Vec<Option<String>> {
     (0..row.len())
         .map(|i| -> Option<String> {
-            let raw = row.try_get_raw(i);
-            let raw = match raw {
+            let raw = match row.try_get_raw(i) {
                 Ok(v) => v,
                 Err(_) => return None,
             };
@@ -136,7 +135,19 @@ fn row_values(row: &MySqlRow) -> Vec<Option<String>> {
             if let Ok(n) = row.try_get::<i64, _>(i) {
                 return Some(n.to_string());
             }
+            if let Ok(n) = row.try_get::<i32, _>(i) {
+                return Some(n.to_string());
+            }
+            if let Ok(n) = row.try_get::<u64, _>(i) {
+                return Some(n.to_string());
+            }
+            if let Ok(n) = row.try_get::<u32, _>(i) {
+                return Some(n.to_string());
+            }
             if let Ok(f) = row.try_get::<f64, _>(i) {
+                return Some(f.to_string());
+            }
+            if let Ok(f) = row.try_get::<f32, _>(i) {
                 return Some(f.to_string());
             }
             Some("?".to_string())

@@ -14,6 +14,19 @@ use std::io::stdout;
 use std::time::Duration;
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
+const ALT: KeyModifiers = KeyModifiers::ALT;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ViewMode {
+    Table,
+    Vertical,
+}
+
+impl ViewMode {
+    fn is_vertical(&self) -> bool {
+        matches!(self, ViewMode::Vertical)
+    }
+}
 
 pub struct App {
     pub input: String,
@@ -25,14 +38,19 @@ pub struct App {
     pub conn_name: String,
     pub state: AppState,
     pub scroll: usize,
+    pub scroll_x: usize,
     pub should_quit: bool,
     pub completion: CompletionEngine,
+    pub completion_active: bool,
+    pub active_block: usize,
+    pub view_modes: Vec<ViewMode>,
 }
 
 pub struct QueryBlock {
     pub sql: String,
     pub result: Option<QueryResult>,
     pub error: Option<String>,
+    pub view_mode: ViewMode,
 }
 
 pub enum AppState {
@@ -52,8 +70,12 @@ impl App {
             conn_name,
             state: AppState::Idle,
             scroll: 0,
+            scroll_x: 0,
             should_quit: false,
             completion: CompletionEngine::new(),
+            completion_active: false,
+            active_block: 0,
+            view_modes: Vec::with_capacity(64),
         }
     }
 
@@ -140,13 +162,72 @@ impl App {
         self.cursor = self.input.len();
     }
 
+    pub fn scroll_page_older(&mut self, page_size: usize) {
+        self.scroll = self.scroll.saturating_add(page_size);
+    }
+
+    pub fn scroll_page_newer(&mut self, page_size: usize) {
+        self.scroll = self.scroll.saturating_sub(page_size);
+    }
+
+    pub fn scroll_x_left(&mut self) {
+        self.scroll_x = self.scroll_x.saturating_sub(4);
+    }
+
+    pub fn scroll_x_right(&mut self) {
+        self.scroll_x = self.scroll_x.saturating_add(4);
+    }
+
+    fn strip_trailing_g(sql: &str) -> (String, bool) {
+        let trimmed = sql.trim_end();
+        if trimmed.ends_with("\\G") || trimmed.ends_with("\\g") {
+            let stripped = trimmed[..trimmed.len() - 2].trim().to_string();
+            (stripped, true)
+        } else {
+            (sql.to_string(), false)
+        }
+    }
+
+    pub fn focus_next_block(&mut self) {
+        if self.query_blocks.is_empty() {
+            return;
+        }
+        self.active_block = (self.active_block + 1).min(self.query_blocks.len() - 1);
+    }
+
+    pub fn focus_prev_block(&mut self) {
+        if self.active_block > 0 {
+            self.active_block -= 1;
+        }
+    }
+
+    pub fn toggle_view_mode(&mut self) {
+        if self.active_block < self.view_modes.len() {
+            let mode = self.view_modes[self.active_block];
+            self.view_modes[self.active_block] = match mode {
+                ViewMode::Table => ViewMode::Vertical,
+                ViewMode::Vertical => ViewMode::Table,
+            };
+        }
+    }
+
+    pub fn block_view_mode(&self, idx: usize) -> ViewMode {
+        self.view_modes.get(idx).copied().unwrap_or(ViewMode::Table)
+    }
+
+    pub async fn refresh_schema(&mut self) {
+        self.completion.fetch_schema(&self.db).await;
+    }
+
     pub async fn execute_current(&mut self) {
-        let sql = self.input.trim().to_string();
-        if sql.is_empty() {
+        let raw_sql = self.input.trim().to_string();
+        if raw_sql.is_empty() {
             return;
         }
 
-        self.history.push(sql.clone());
+        let (sql, use_vertical) = Self::strip_trailing_g(&raw_sql);
+
+        self.history.push(raw_sql);
         self.history_pos = None;
         self.input.clear();
         self.cursor = 0;
@@ -155,11 +236,18 @@ impl App {
             sql: sql.clone(),
             result: None,
             error: None,
+            view_mode: if use_vertical {
+                ViewMode::Vertical
+            } else {
+                ViewMode::Table
+            },
         };
+        let view_mode = block.view_mode;
         self.query_blocks.push(block);
+        self.view_modes.push(view_mode);
         let idx = self.query_blocks.len() - 1;
+        self.active_block = idx;
         self.state = AppState::Executing;
-
         self.scroll = 0;
 
         let is_use = sql.trim_start().to_uppercase().starts_with("USE ");
@@ -193,7 +281,7 @@ impl App {
         self.state = AppState::Idle;
     }
 
-    pub fn open_in_editor(&self) -> Result<(), String> {
+    pub fn open_in_editor(&self, terminal: &mut DefaultTerminal) -> Result<(), String> {
         let block = self.query_blocks.last().ok_or("No query results yet")?;
         let content = ui::format_block_as_text(block);
 
@@ -219,22 +307,13 @@ impl App {
 
         enable_raw_mode().map_err(|e| format!("Enable raw mode: {e}"))?;
         execute!(stdout(), EnterAlternateScreen).map_err(|e| format!("Enter alt screen: {e}"))?;
+        terminal
+            .clear()
+            .map_err(|e| format!("Clear screen: {e}"))?;
 
         let _ = std::fs::remove_file(&path);
 
         Ok(())
-    }
-
-    pub fn scroll_up(&mut self) {
-        if self.scroll > 0 {
-            self.scroll -= 1;
-        }
-    }
-
-    pub fn scroll_down(&mut self) {
-        if self.scroll < usize::MAX {
-            self.scroll += 1;
-        }
     }
 }
 
@@ -253,62 +332,55 @@ pub async fn run(mut terminal: DefaultTerminal, mut app: App) -> Result<(), Stri
             if let AppState::Executing = app.state {
                 continue;
             }
-            match key.code {
-                KeyCode::Char('c') if key.modifiers == CTRL => {
-                    app.should_quit = true;
-                }
-                KeyCode::Char('d') if key.modifiers == CTRL => {
-                    app.should_quit = true;
-                }
-                KeyCode::Enter => {
-                    app.execute_current().await;
-                }
-                KeyCode::Char('o') if key.modifiers == CTRL => {
-                    let _ = app.open_in_editor();
-                    let _ = terminal.clear();
-                }
-                KeyCode::Backspace => {
-                    app.delete_before();
-                }
-                KeyCode::Delete => {
-                    app.delete_at();
-                }
-                KeyCode::Left => {
-                    app.move_left();
-                }
-                KeyCode::Right => {
-                    app.move_right();
-                }
-                KeyCode::Home => {
-                    app.move_home();
-                }
-                KeyCode::End => {
-                    app.move_end();
-                }
-                KeyCode::Up if !app.input.is_empty() || app.history_pos.is_some() => {
-                    app.history_back();
-                }
-                KeyCode::Down if app.history_pos.is_some() => {
-                    app.history_forward();
-                }
-                KeyCode::Tab => {
-                    if let Some((new_input, new_cursor)) =
-                        app.completion.complete(&app.input, app.cursor)
-                    {
-                        app.input = new_input;
-                        app.cursor = new_cursor;
+
+            let ctrl = key.modifiers == CTRL;
+            let alt = key.modifiers == ALT;
+
+            if app.completion_active {
+                match key.code {
+                    KeyCode::Tab | KeyCode::BackTab => {
+                        if key.code == KeyCode::BackTab {
+                            app.completion.select_prev();
+                        } else {
+                            app.completion.select_next();
+                        }
+                    }
+                    KeyCode::Enter => {
+                        if let Some((new_input, new_cursor)) =
+                            app.completion.accept_selection(&app.input, app.cursor)
+                        {
+                            app.input = new_input;
+                            app.cursor = new_cursor;
+                        }
+                        app.completion_active = false;
+                        app.completion.clear_candidates();
+                    }
+                    KeyCode::Esc => {
+                        app.completion_active = false;
+                        app.completion.clear_candidates();
+                    }
+                    KeyCode::Char(c) => {
+                        app.insert_char(c);
+                        app.completion.compute_candidates(&app.input, app.cursor);
+                        if !app.completion.has_completions() {
+                            app.completion_active = false;
+                        }
+                    }
+                    KeyCode::Backspace => {
+                        app.delete_before();
+                        app.completion.compute_candidates(&app.input, app.cursor);
+                        if !app.completion.has_completions() {
+                            app.completion_active = false;
+                        }
+                    }
+                    _ => {
+                        app.completion_active = false;
+                        app.completion.clear_candidates();
+                        handle_key(&mut app, &mut terminal, key.code, ctrl, alt).await;
                     }
                 }
-                KeyCode::PageUp => {
-                    app.scroll_down();
-                }
-                KeyCode::PageDown => {
-                    app.scroll_up();
-                }
-                KeyCode::Char(c) => {
-                    app.insert_char(c);
-                }
-                _ => {}
+            } else {
+                handle_key(&mut app, &mut terminal, key.code, ctrl, alt).await;
             }
         }
 
@@ -319,4 +391,81 @@ pub async fn run(mut terminal: DefaultTerminal, mut app: App) -> Result<(), Stri
 
     ratatui::restore();
     Ok(())
+}
+
+async fn handle_key(app: &mut App, terminal: &mut DefaultTerminal, code: KeyCode, ctrl: bool, alt: bool) {
+    match code {
+        KeyCode::Char('c') if ctrl => {
+            app.should_quit = true;
+        }
+        KeyCode::Char('d') if ctrl => {
+            app.should_quit = true;
+        }
+        KeyCode::Enter => {
+            app.execute_current().await;
+        }
+        KeyCode::Char('o') if ctrl => {
+            let _ = app.open_in_editor(terminal);
+        }
+        KeyCode::Char('r') if ctrl => {
+            app.refresh_schema().await;
+        }
+        KeyCode::Char('v') if ctrl => {
+            app.toggle_view_mode();
+        }
+        KeyCode::Left if ctrl => {
+            app.scroll_x_left();
+        }
+        KeyCode::Right if ctrl => {
+            app.scroll_x_right();
+        }
+        KeyCode::Up if alt => {
+            app.focus_prev_block();
+        }
+        KeyCode::Down if alt => {
+            app.focus_next_block();
+        }
+        KeyCode::Tab => {
+            app.completion.compute_candidates(&app.input, app.cursor);
+            if app.completion.has_completions() {
+                app.completion_active = true;
+            }
+        }
+        KeyCode::Backspace => {
+            app.delete_before();
+        }
+        KeyCode::Delete => {
+            app.delete_at();
+        }
+        KeyCode::Left => {
+            if app.cursor > 0 {
+                app.move_left();
+            }
+        }
+        KeyCode::Right => {
+            app.move_right();
+        }
+        KeyCode::Home => {
+            app.move_home();
+        }
+        KeyCode::End => {
+            app.move_end();
+        }
+        KeyCode::Up if !app.input.is_empty() || app.history_pos.is_some() => {
+            app.history_back();
+        }
+        KeyCode::Down if app.history_pos.is_some() => {
+            app.history_forward();
+        }
+        KeyCode::PageUp => {
+            app.scroll_page_older(1);
+        }
+        KeyCode::PageDown => {
+            app.scroll_page_newer(1);
+        }
+        KeyCode::Char(c) => {
+            app.insert_char(c);
+        }
+        _ => {}
+    }
 }
