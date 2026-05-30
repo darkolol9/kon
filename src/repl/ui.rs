@@ -139,6 +139,52 @@ fn format_value(val: &Option<String>, width: usize, numeric: bool) -> Span<'stat
     }
 }
 
+fn format_table_header(
+    result: &QueryResult,
+    available_width: usize,
+    block_focused: bool,
+) -> Vec<Line<'static>> {
+    let col_widths = compute_col_widths(result, available_width);
+    if col_widths.is_empty() {
+        return vec![];
+    }
+
+    let gutter_width = col_widths[0];
+    let data_widths = &col_widths[1..];
+
+    let sep = data_widths
+        .iter()
+        .map(|w| "─".repeat(w + 2))
+        .collect::<Vec<_>>()
+        .join("┼");
+
+    let header_text = data_widths
+        .iter()
+        .enumerate()
+        .map(|(i, &w)| {
+            let c = truncate(&result.columns[i], MAX_COL_WIDTH);
+            format!(" {:width$} ", c, width = w)
+        })
+        .collect::<Vec<_>>()
+        .join("│");
+
+    let header_style = if block_focused {
+        Style::new().bold().cyan()
+    } else {
+        Style::new().bold().dark_gray()
+    };
+
+    vec![
+        Line::from(
+            std::iter::once(format!("{:width$}", "", width = gutter_width))
+                .chain(std::iter::once(header_text))
+                .collect::<String>(),
+        )
+        .style(header_style),
+        Line::from(format!("{} {}", " ".repeat(gutter_width), sep)).dim(),
+    ]
+}
+
 fn format_result_table(
     result: &QueryResult,
     available_width: usize,
@@ -332,8 +378,9 @@ fn render_query_block(
     scroll_x: usize,
     viewport_height: usize,
     focused: bool,
-) -> Vec<Line<'static>> {
+) -> (Vec<Line<'static>>, Option<Vec<Line<'static>>>) {
     let mut lines: Vec<Line<'static>> = Vec::new();
+    let mut sticky_header: Option<Vec<Line<'static>>> = None;
 
     let prefix = if focused { "▶ " } else { "  " };
     let sql_line = format!("{}mysql> {}", prefix, block.sql);
@@ -344,12 +391,27 @@ fn render_query_block(
     }
 
     if let Some(result) = &block.result {
-        let result_lines = match block.view_mode {
+        let (result_lines, header) = match block.view_mode {
             ViewMode::Table => {
-                format_result_table(result, available_width, scroll_x, viewport_height, focused)
+                let has_cols = !result.columns.is_empty();
+                let header = if focused && has_cols {
+                    Some(format_table_header(result, available_width, true))
+                } else {
+                    None
+                };
+                let body = format_result_table(result, available_width, scroll_x, viewport_height, focused);
+                let body = if focused && has_cols {
+                    body.into_iter().skip(4).collect()
+                } else {
+                    body
+                };
+                (body, header)
             }
-            ViewMode::Vertical => format_result_vertical(result),
+            ViewMode::Vertical => (format_result_vertical(result), None),
         };
+        if focused {
+            sticky_header = header;
+        }
         lines.extend(result_lines);
     }
     if let Some(err) = &block.error {
@@ -357,7 +419,7 @@ fn render_query_block(
     }
     lines.push(Line::from(""));
 
-    lines
+    (lines, sticky_header)
 }
 
 pub fn render(frame: &mut Frame, app: &App) {
@@ -404,19 +466,33 @@ fn render_results(frame: &mut Frame, area: Rect, app: &App) {
     }
 
     let mut lines: Vec<Line<'static>> = Vec::new();
+    let mut sticky_header: Option<Vec<Line<'static>>> = None;
+
     for (idx, block) in app.query_blocks.iter().enumerate() {
         let focused = idx == app.active_block;
-        lines.extend(render_query_block(
+        let (block_lines, block_header) = render_query_block(
             block,
             area.width as usize,
             app.scroll_x,
             area.height as usize,
             focused,
-        ));
+        );
+        if focused {
+            sticky_header = block_header;
+        }
+        lines.extend(block_lines);
+    }
+
+    let header_height = sticky_header.as_ref().map(|h| h.len() as u16).unwrap_or(0);
+    let [header_area, content_area] =
+        Layout::vertical([Constraint::Length(header_height), Constraint::Min(0)]).areas(area);
+
+    if let Some(header) = sticky_header {
+        frame.render_widget(Paragraph::new(Text::from(header)), header_area);
     }
 
     let total = lines.len();
-    let viewport = area.height as usize;
+    let viewport = content_area.height as usize;
 
     let scroll_offset = total.saturating_sub(viewport).saturating_sub(app.scroll);
 
@@ -424,7 +500,7 @@ fn render_results(frame: &mut Frame, area: Rect, app: &App) {
     let para = Paragraph::new(text)
         .scroll((scroll_offset as u16, 0))
         .left_aligned();
-    frame.render_widget(para, area);
+    frame.render_widget(para, content_area);
 }
 
 fn render_input(frame: &mut Frame, area: Rect, app: &App) {
