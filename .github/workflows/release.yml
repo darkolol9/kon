@@ -68,10 +68,12 @@ jobs:
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
 
       - name: Generate checksums
         run: |
-          find . -name "kon-*.tar.gz" -o -name "kon-*.zip" | while read f; do
+          find . -type f \( -name "kon-*.tar.gz" -o -name "kon-*.zip" \) | while read f; do
             sha256sum "$f" >> SHA256SUMS
           done
 
