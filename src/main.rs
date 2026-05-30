@@ -1,7 +1,10 @@
+mod app;
 mod cli;
+mod cmd;
 mod config;
 mod db;
-mod repl;
+mod theme;
+mod tui;
 
 use clap::Parser;
 use cli::{Cli, Commands};
@@ -164,12 +167,15 @@ async fn cmd_repl(config: &Config) -> Result<(), String> {
             } else {
                 format!("{} ({})", name, conn.database)
             };
-            let app = repl::App::new(db, header);
+            let theme_name = config.theme.as_deref().unwrap_or("default");
+            let theme = theme::from_name(theme_name).unwrap_or(&theme::DEFAULT);
+            let app = app::App::new(db, header, theme);
             let terminal = ratatui::init();
-            repl::run(terminal, app).await
+            app::event::run(terminal, app).await
         }
-        None => {
-            Err("No active connection. Use \x1b[1mkon connect\x1b[0m to add one, or \x1b[1mkon set <name>\x1b[0m to select one.".to_string())
-        }
+        None => Err(
+            "No active connection. Use \x1b[1mkon connect\x1b[0m to add one, or \x1b[1mkon set <name>\x1b[0m to select one."
+                .to_string(),
+        ),
     }
 }

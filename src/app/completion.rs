@@ -5,34 +5,123 @@ use sqlparser::dialect::MySqlDialect;
 use sqlparser::tokenizer::{Token, Tokenizer};
 
 const SQL_KEYWORDS: &[&str] = &[
-    "SELECT", "FROM", "WHERE", "JOIN", "LEFT", "RIGHT", "INNER", "OUTER", "CROSS",
-    "ON", "AND", "OR", "NOT", "IN", "EXISTS", "BETWEEN", "LIKE", "IS", "NULL",
-    "AS", "SET", "VALUES", "INTO", "INSERT", "UPDATE", "DELETE", "CREATE", "ALTER",
-    "DROP", "TABLE", "INDEX", "VIEW", "DATABASE", "USE", "SHOW", "DESCRIBE",
-    "EXPLAIN", "ORDER", "BY", "GROUP", "HAVING", "LIMIT", "OFFSET", "UNION", "ALL",
-    "DISTINCT", "CASE", "WHEN", "THEN", "ELSE", "END", "ASC", "DESC", "PRIMARY",
-    "KEY", "FOREIGN", "REFERENCES", "CASCADE", "GRANT", "REVOKE", "COMMIT",
-    "ROLLBACK", "BEGIN", "TRANSACTION", "TRUE", "FALSE", "WITH", "RECURSIVE",
-    "RETURNING", "REPLACE", "TRUNCATE", "RENAME", "IF",
+    "SELECT",
+    "FROM",
+    "WHERE",
+    "JOIN",
+    "LEFT",
+    "RIGHT",
+    "INNER",
+    "OUTER",
+    "CROSS",
+    "ON",
+    "AND",
+    "OR",
+    "NOT",
+    "IN",
+    "EXISTS",
+    "BETWEEN",
+    "LIKE",
+    "IS",
+    "NULL",
+    "AS",
+    "SET",
+    "VALUES",
+    "INTO",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "CREATE",
+    "ALTER",
+    "DROP",
+    "TABLE",
+    "INDEX",
+    "VIEW",
+    "DATABASE",
+    "USE",
+    "SHOW",
+    "DESCRIBE",
+    "EXPLAIN",
+    "ORDER",
+    "BY",
+    "GROUP",
+    "HAVING",
+    "LIMIT",
+    "OFFSET",
+    "UNION",
+    "ALL",
+    "DISTINCT",
+    "CASE",
+    "WHEN",
+    "THEN",
+    "ELSE",
+    "END",
+    "ASC",
+    "DESC",
+    "PRIMARY",
+    "KEY",
+    "FOREIGN",
+    "REFERENCES",
+    "CASCADE",
+    "GRANT",
+    "REVOKE",
+    "COMMIT",
+    "ROLLBACK",
+    "BEGIN",
+    "TRANSACTION",
+    "TRUE",
+    "FALSE",
+    "WITH",
+    "RECURSIVE",
+    "RETURNING",
+    "REPLACE",
+    "TRUNCATE",
+    "RENAME",
+    "IF",
 ];
 
 const SQL_FUNCTIONS: &[&str] = &[
-    "COUNT", "SUM", "AVG", "MIN", "MAX", "COALESCE", "IFNULL", "NULLIF",
-    "CAST", "CONVERT", "CONCAT", "SUBSTRING", "TRIM", "UPPER", "LOWER",
-    "LENGTH", "REPLACE", "LOCATE", "NOW", "CURDATE", "CURTIME", "DATE",
-    "YEAR", "MONTH", "DAY", "HOUR", "MINUTE", "SECOND", "DATE_FORMAT",
-    "UNIX_TIMESTAMP", "FROM_UNIXTIME", "ROUND", "CEIL", "FLOOR", "ABS",
-    "GREATEST", "LEAST", "GROUP_CONCAT", "JSON_EXTRACT", "JSON_UNQUOTE",
+    "COUNT",
+    "SUM",
+    "AVG",
+    "MIN",
+    "MAX",
+    "COALESCE",
+    "IFNULL",
+    "NULLIF",
+    "CAST",
+    "CONVERT",
+    "CONCAT",
+    "SUBSTRING",
+    "TRIM",
+    "UPPER",
+    "LOWER",
+    "LENGTH",
+    "REPLACE",
+    "LOCATE",
+    "NOW",
+    "CURDATE",
+    "CURTIME",
+    "DATE",
+    "YEAR",
+    "MONTH",
+    "DAY",
+    "HOUR",
+    "MINUTE",
+    "SECOND",
+    "DATE_FORMAT",
+    "UNIX_TIMESTAMP",
+    "FROM_UNIXTIME",
+    "ROUND",
+    "CEIL",
+    "FLOOR",
+    "ABS",
+    "GREATEST",
+    "LEAST",
+    "GROUP_CONCAT",
+    "JSON_EXTRACT",
+    "JSON_UNQUOTE",
 ];
-
-#[derive(Debug, Clone, PartialEq)]
-enum Context {
-    Keyword,
-    Table,
-    Column,
-    Global,
-    None,
-}
 
 #[derive(Debug, Clone)]
 pub struct CompletionCandidate {
@@ -49,6 +138,12 @@ pub struct CompletionEngine {
     selection: usize,
 }
 
+impl Default for CompletionEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CompletionEngine {
     pub fn new() -> Self {
         Self {
@@ -59,6 +154,7 @@ impl CompletionEngine {
         }
     }
 
+    #[allow(dead_code)]
     pub fn current_candidate(&self) -> Option<&CompletionCandidate> {
         self.candidates.get(self.selection)
     }
@@ -75,6 +171,7 @@ impl CompletionEngine {
         !self.candidates.is_empty()
     }
 
+    #[allow(dead_code)]
     pub fn candidate_count(&self) -> usize {
         self.candidates.len()
     }
@@ -165,14 +262,14 @@ impl CompletionEngine {
         match last_keyword.as_deref() {
             Some("SELECT") | Some("DISTINCT") => Context::Column,
             Some("FROM") | Some("INTO") | Some("UPDATE") | Some("TABLE") => Context::Table,
-            Some("JOIN") | Some("LEFT") | Some("RIGHT") | Some("INNER")
-            | Some("CROSS") | Some("OUTER") | Some("NATURAL") => Context::Table,
-            Some("WHERE") | Some("AND") | Some("OR") | Some("ON")
-            | Some("SET") | Some("HAVING") => Context::Column,
+            Some("JOIN") | Some("LEFT") | Some("RIGHT") | Some("INNER") | Some("CROSS")
+            | Some("OUTER") | Some("NATURAL") => Context::Table,
+            Some("WHERE") | Some("AND") | Some("OR") | Some("ON") | Some("SET")
+            | Some("HAVING") => Context::Column,
             Some("ORDER") | Some("GROUP") => Context::Column,
             Some("LIMIT") | Some("OFFSET") => Context::Keyword,
-            Some("VALUES") | Some("AS") | Some("NOT") | Some("IS")
-            | Some("LIKE") | Some("BETWEEN") | Some("EXISTS") => Context::None,
+            Some("VALUES") | Some("AS") | Some("NOT") | Some("IS") | Some("LIKE")
+            | Some("BETWEEN") | Some("EXISTS") => Context::None,
             Some("BY") => {
                 let body = before
                     .trim_end()
@@ -200,10 +297,11 @@ impl CompletionEngine {
                     _ => Context::Keyword,
                 }
             }
-            Some("INSERT") | Some("CREATE") | Some("ALTER") | Some("DROP")
-            | Some("TRUNCATE") | Some("RENAME") => Context::Table,
-            Some("GRANT") | Some("REVOKE") | Some("BEGIN") | Some("COMMIT")
-            | Some("ROLLBACK") => Context::None,
+            Some("INSERT") | Some("CREATE") | Some("ALTER") | Some("DROP") | Some("TRUNCATE")
+            | Some("RENAME") => Context::Table,
+            Some("GRANT") | Some("REVOKE") | Some("BEGIN") | Some("COMMIT") | Some("ROLLBACK") => {
+                Context::None
+            }
             _ => {
                 let upper = before.to_uppercase();
                 if upper.contains("SELECT") || upper.ends_with(',') {
@@ -226,6 +324,25 @@ impl CompletionEngine {
         self.candidates.clear();
         let word = Self::current_word(input, cursor);
         let word_upper = word.to_uppercase();
+
+        if input.starts_with('/') {
+            let word = Self::current_word(input, cursor);
+            if let Some(prefix) = word.strip_prefix('/') {
+                for cmd_name in crate::cmd::all_names() {
+                    if Self::subsequence_match(prefix, cmd_name) {
+                        self.candidates.push(CompletionCandidate {
+                            display: format!("/{}", cmd_name),
+                            replacement: format!("/{}", cmd_name),
+                            kind: "command",
+                            table: None,
+                        });
+                    }
+                }
+                self.candidates.sort_by(|a, b| a.display.cmp(&b.display));
+                self.selection = 0;
+            }
+            return;
+        }
 
         if let Some(dot_pos) = word.rfind('.') {
             let table_name = &word[..dot_pos];
@@ -342,6 +459,19 @@ impl CompletionEngine {
 
     pub fn accept_selection(&self, input: &str, cursor: usize) -> Option<(String, usize)> {
         let candidate = self.candidates.get(self.selection)?;
-        Some(Self::replace_current_word(input, cursor, &candidate.replacement))
+        Some(Self::replace_current_word(
+            input,
+            cursor,
+            &candidate.replacement,
+        ))
     }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum Context {
+    Keyword,
+    Table,
+    Column,
+    Global,
+    None,
 }

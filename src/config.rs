@@ -16,6 +16,7 @@ pub struct Connection {
 pub struct Config {
     pub active_connection: Option<String>,
     pub connections: HashMap<String, Connection>,
+    pub theme: Option<String>,
 }
 
 impl Config {
