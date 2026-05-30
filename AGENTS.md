@@ -42,6 +42,10 @@ src/repl/syntax.rs   — SQL syntax highlighting tokenizer
 - `open_in_editor()` manually does `LeaveAlternateScreen`/`disable_raw_mode` → editor → `enable_raw_mode`/`EnterAlternateScreen` + `terminal.clear()`. When adding editor support, always pass `terminal: &mut DefaultTerminal`.
 - `scroll` in `App` is offset-from-bottom (larger = older content). Scroll direction: `scroll_page_older` increments, `scroll_page_newer` decrements.
 - `row_values()` in `db.rs` has explicit `try_get` fallbacks: `String` → `i64` → `i32` → `u64` → `u32` → `f64` → `f32` → `"?"`. Add new type mappings when encountering `?` output.
-- Completion context is determined by tokenizing input backwards from cursor via `sqlparser`. The context enum is: `Keyword`/`Table`/`Column`/`Global`/`Function`/`None`. Subsequence matching (no external fuzzy lib).
+- Completion context is determined by tokenizing input backwards from cursor via `sqlparser`. The `Context` enum is: `Keyword`/`Table`/`Column`/`Global`/`None`. Functions are a separate category matched alongside column context. Subsequence matching (no external fuzzy lib).
+- `PgUp`/`PgDn` scroll results by 1 block (not a full page).
+- `\G` suffix (MySQL convention) triggers vertical view mode; `\g` is equivalent. Handled in `strip_trailing_g()`.
+- Key bindings not in README: `Ctrl+O` = open last block in `$EDITOR`, `Ctrl+V` = toggle table/vertical view, `Ctrl+R` = refresh schema, `Alt+Up/Down` = navigate between query blocks, `Ctrl+Left/Right` = horizontal scroll.
+- All SQL goes through `sqlx::raw_sql(AssertSqlSafe(...))` — MySQL-only, no query builder.
 - Passwords stored in plaintext in config file. No encryption.
 - No tests exist anywhere in the codebase.
