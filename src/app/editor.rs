@@ -216,6 +216,68 @@ impl App {
     }
 }
 
+/// Database browser
+impl App {
+    pub async fn toggle_database_browser(&mut self) {
+        if self.db_browser_visible {
+            self.db_browser_visible = false;
+            self.focus = self.prev_focus;
+            return;
+        }
+        self.db_browser_visible = true;
+        self.db_browser_selection = 0;
+        self.db_browser_fetching = true;
+        self.db_browser_error = None;
+        self.prev_focus = self.focus;
+        self.focus = Focus::DatabaseBrowser;
+
+        let current_db = self.conn_name.split(" > ").nth(1).unwrap_or("").to_string();
+
+        match self.db.fetch_databases().await {
+            Ok(dbs) => {
+                self.db_browser_databases = dbs;
+                if let Some(pos) = self
+                    .db_browser_databases
+                    .iter()
+                    .position(|d| d == &current_db)
+                {
+                    self.db_browser_selection = pos;
+                }
+            }
+            Err(e) => {
+                self.db_browser_databases = vec![];
+                self.db_browser_error = Some(e);
+            }
+        }
+        self.db_browser_fetching = false;
+    }
+
+    pub async fn select_database(&mut self, idx: usize) {
+        let Some(db_name) = self.db_browser_databases.get(idx) else {
+            self.db_browser_visible = false;
+            self.focus = self.prev_focus;
+            return;
+        };
+        let sql = format!("USE `{}`", db_name);
+        let _ = self.db.execute(&sql).await;
+        let base = self
+            .conn_name
+            .split(" > ")
+            .next()
+            .unwrap_or(&self.conn_name)
+            .to_string();
+        self.conn_name = format!("{} > {}", base, db_name);
+        self.completion.fetch_schema(&self.db).await;
+        if let Some(conn) = self.config.connections.get_mut(&base) {
+            conn.database = db_name.to_string();
+        }
+        let _ = self.config.save();
+        self.set_toast(&format!("Switched to database '{}'", db_name));
+        self.db_browser_visible = false;
+        self.focus = self.prev_focus;
+    }
+}
+
 /// Feature toggles
 impl App {
     pub fn toggle_schema_browser(&mut self) {
@@ -237,68 +299,6 @@ impl App {
         } else {
             self.focus = self.prev_focus;
         }
-    }
-
-    pub async fn open_database_browser(&mut self) {
-        if self.database_browser_visible {
-            self.database_browser_visible = false;
-            self.focus = self.prev_focus;
-            return;
-        }
-        self.database_browser_visible = true;
-        self.database_browser_selection = 0;
-        self.database_browser_fetching = true;
-        self.database_browser_error = None;
-        self.database_browser_current =
-            self.conn_name.split(" > ").nth(1).unwrap_or("").to_string();
-        self.prev_focus = self.focus;
-        self.focus = Focus::DatabaseBrowser;
-
-        match self.db.fetch_databases().await {
-            Ok(dbs) => {
-                self.database_browser_databases = dbs;
-                // Jump to current database in the list
-                if let Some(pos) = self
-                    .database_browser_databases
-                    .iter()
-                    .position(|d| d == &self.database_browser_current)
-                {
-                    self.database_browser_selection = pos;
-                }
-            }
-            Err(e) => {
-                self.database_browser_databases = vec![];
-                self.database_browser_error = Some(e);
-            }
-        }
-        self.database_browser_fetching = false;
-    }
-
-    pub async fn switch_to_database(&mut self) {
-        let Some(db_name) = self
-            .database_browser_databases
-            .get(self.database_browser_selection)
-        else {
-            self.database_browser_visible = false;
-            self.focus = self.prev_focus;
-            return;
-        };
-        let sql = format!("USE `{}`", db_name);
-        let _ = self.db.execute(&sql).await;
-        let base = self
-            .conn_name
-            .split(" > ")
-            .next()
-            .unwrap_or(&self.conn_name)
-            .to_string();
-        self.conn_name = format!("{} > {}", base, db_name);
-        self.completion.fetch_schema(&self.db).await;
-        if let Some(conn) = self.config.connections.get_mut(&base) {
-            conn.database = db_name.to_string();
-        }
-        let _ = self.config.save();
-        self.database_browser_visible = false;
-        self.focus = self.prev_focus;
     }
 
     pub fn open_command_palette(&mut self) {

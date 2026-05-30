@@ -51,7 +51,14 @@ pub async fn run(mut terminal: DefaultTerminal, mut app: App) -> Result<(), Stri
                 }
                 Focus::SchemaBrowser => handle_schema_key(&mut app, key.code).await,
                 Focus::HistoryBrowser => handle_history_key(&mut app, key.code).await,
-                Focus::DatabaseBrowser => handle_database_browser_key(&mut app, key.code).await,
+                Focus::DatabaseBrowser => {
+                    if ctrl && matches!(key.code, KeyCode::Char('d')) {
+                        app.db_browser_visible = false;
+                        app.focus = app.prev_focus;
+                    } else {
+                        handle_database_key(&mut app, key.code).await;
+                    }
+                }
                 Focus::CommandPalette => handle_palette_key(&mut app, key.code).await,
                 Focus::HelpOverlay => {
                     app.help_overlay_active = false;
@@ -159,6 +166,7 @@ async fn handle_input_raw(
 ) {
     match code {
         KeyCode::Char('c') | KeyCode::Char('q') if ctrl => app.should_quit = true,
+        KeyCode::Char('d') if ctrl => app.toggle_database_browser().await,
         KeyCode::Enter => app.execute_current().await,
         KeyCode::Char('o') if ctrl => {
             let _ = app.open_in_editor(terminal);
@@ -166,7 +174,6 @@ async fn handle_input_raw(
         KeyCode::Char('r') if ctrl => app.refresh_schema().await,
         KeyCode::Char('v') if ctrl => app.toggle_view_mode(),
         KeyCode::Char('s') if ctrl => app.toggle_schema_browser(),
-        KeyCode::Char('d') if ctrl => app.open_database_browser().await,
         KeyCode::Char('h') if ctrl => {
             app.history_browser_visible = !app.history_browser_visible;
             if app.history_browser_visible {
@@ -224,7 +231,6 @@ async fn handle_results_key(
             let _ = app.open_in_editor(terminal);
         }
         KeyCode::Char('s') if ctrl => app.toggle_schema_browser(),
-        KeyCode::Char('d') if ctrl => app.open_database_browser().await,
         KeyCode::Char('h') if ctrl => {
             app.history_browser_visible = !app.history_browser_visible;
             if app.history_browser_visible {
@@ -235,6 +241,7 @@ async fn handle_results_key(
         KeyCode::Char('p') if ctrl => app.open_command_palette(),
         KeyCode::Char('?') if ctrl => app.toggle_help(),
         KeyCode::Char('r') if ctrl => app.refresh_schema().await,
+        KeyCode::Char('d') if ctrl => app.toggle_database_browser().await,
         KeyCode::Left if alt => app.focus_prev_tab(),
         KeyCode::Right if alt => app.focus_next_tab(),
         KeyCode::Enter | KeyCode::Char('i') => {
@@ -278,24 +285,22 @@ async fn handle_schema_key(app: &mut App, code: KeyCode) {
 
 // --- Database browser ---
 
-async fn handle_database_browser_key(app: &mut App, code: KeyCode) {
+async fn handle_database_key(app: &mut App, code: KeyCode) {
     match code {
         KeyCode::Up => {
-            app.database_browser_selection = app.database_browser_selection.saturating_sub(1);
+            app.db_browser_selection = app.db_browser_selection.saturating_sub(1);
         }
         KeyCode::Down => {
-            let max = app.database_browser_databases.len().saturating_sub(1);
-            if app.database_browser_selection < max {
-                app.database_browser_selection += 1;
+            let max = app.db_browser_databases.len().saturating_sub(1);
+            if app.db_browser_selection < max {
+                app.db_browser_selection += 1;
             }
         }
         KeyCode::Enter => {
-            if !app.database_browser_fetching {
-                app.switch_to_database().await;
-            }
+            app.select_database(app.db_browser_selection).await;
         }
         KeyCode::Esc => {
-            app.database_browser_visible = false;
+            app.db_browser_visible = false;
             app.focus = app.prev_focus;
         }
         _ => {}

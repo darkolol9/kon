@@ -61,14 +61,11 @@ pub struct App {
     pub command_palette_selection: usize,
     pub all_palette_entries: Vec<PaletteEntry>,
     pub help_overlay_active: bool,
-
-    // Database browser
-    pub database_browser_visible: bool,
-    pub database_browser_selection: usize,
-    pub database_browser_databases: Vec<String>,
-    pub database_browser_current: String,
-    pub database_browser_fetching: bool,
-    pub database_browser_error: Option<String>,
+    pub db_browser_visible: bool,
+    pub db_browser_databases: Vec<String>,
+    pub db_browser_selection: usize,
+    pub db_browser_fetching: bool,
+    pub db_browser_error: Option<String>,
 
     // Connections panel
     pub connection_selection: usize,
@@ -124,13 +121,11 @@ impl App {
             command_palette_selection: 0,
             all_palette_entries,
             help_overlay_active: false,
-
-            database_browser_visible: false,
-            database_browser_selection: 0,
-            database_browser_databases: Vec::new(),
-            database_browser_current: String::new(),
-            database_browser_fetching: false,
-            database_browser_error: None,
+            db_browser_visible: false,
+            db_browser_databases: Vec::new(),
+            db_browser_selection: 0,
+            db_browser_fetching: false,
+            db_browser_error: None,
 
             connection_selection: 0,
             conn_mode: ConnectionMode::Browse,

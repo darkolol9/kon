@@ -27,11 +27,11 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
             (Panel::Editor, Focus::SchemaBrowser) => Line::from(
                 " ↑↓ Navigate  ↵ Insert SELECT  ⎋ Close  |  F1 Editor  F2 Conn  F3 Settings",
             ),
+            (Panel::Editor, Focus::DatabaseBrowser) => Line::from(
+                " ↑↓ Navigate  ↵ Use Database  ⌃D Close  |  F1 Editor  F2 Conn  F3 Settings",
+            ),
             (Panel::Editor, Focus::HistoryBrowser) => Line::from(
                 " ↑↓ Navigate  ↵ Paste to Input  ⎋ Close  |  F1 Editor  F2 Conn  F3 Settings",
-            ),
-            (Panel::Editor, Focus::DatabaseBrowser) => Line::from(
-                " ↑↓ Navigate  ↵ Switch Database  ⎋ Close  |  F1 Editor  F2 Conn  F3 Settings",
             ),
             (Panel::Connections, Focus::ConnectionsList) => {
                 if app.confirm_delete.is_some() {

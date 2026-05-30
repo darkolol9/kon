@@ -6,27 +6,101 @@ use ratatui::widgets::{Block, Paragraph};
 
 use crate::app::{App, AppState, ViewMode};
 use crate::theme::Theme;
-use crate::tui::{syntax, table, vertical};
+use crate::tui::{completion, syntax, table, vertical};
 
 pub fn render(frame: &mut Frame, content_area: Rect, app: &App) {
     let theme = app.theme;
 
+    let editor_area = if app.db_browser_visible {
+        let panel_width = 22u16.min(content_area.width.saturating_sub(4));
+        let side_area = Rect::new(content_area.x, content_area.y, panel_width, content_area.height);
+        let right_area = Rect::new(
+            content_area.x + panel_width,
+            content_area.y,
+            content_area.width.saturating_sub(panel_width),
+            content_area.height,
+        );
+        render_database_panel(frame, side_area, app, theme);
+        right_area
+    } else {
+        content_area
+    };
+
     let input_height = 3u16;
     let results_area = Rect::new(
-        content_area.x,
-        content_area.y,
-        content_area.width,
-        content_area.height.saturating_sub(input_height),
+        editor_area.x,
+        editor_area.y,
+        editor_area.width,
+        editor_area.height.saturating_sub(input_height),
     );
     let input_area = Rect::new(
-        content_area.x,
-        content_area.y + results_area.height,
-        content_area.width,
+        editor_area.x,
+        editor_area.y + results_area.height,
+        editor_area.width,
         input_height,
     );
 
     render_results(frame, results_area, app, theme);
     render_input(frame, input_area, app, theme);
+
+    if app.completion_active && !app.command_palette_active {
+        completion::render(frame, input_area, app);
+    }
+}
+
+fn render_database_panel(frame: &mut Frame, area: Rect, app: &App, theme: &Theme) {
+    let block = Block::bordered()
+        .title(" Databases ")
+        .border_style(theme.schema_browser_border);
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    if app.db_browser_fetching {
+        let para = Paragraph::new(Line::from(" Loading...")).style(Style::new().dim());
+        frame.render_widget(para, inner);
+        return;
+    }
+
+    if let Some(err) = &app.db_browser_error {
+        let para = Paragraph::new(Line::from(vec![
+            Span::raw(" Error: "),
+            Span::styled(err.as_str(), theme.error),
+        ]));
+        frame.render_widget(para, inner);
+        return;
+    }
+
+    let current_db = app.conn_name.split(" > ").last().unwrap_or("");
+    let bottom = inner.y + inner.height;
+
+    for (y, (i, db)) in (inner.y..).zip(app.db_browser_databases.iter().enumerate()) {
+        if y >= bottom {
+            break;
+        }
+        let selected = i == app.db_browser_selection;
+        let is_current = db == current_db;
+
+        let prefix = if is_current { " * " } else { "   " };
+        let text = format!("{}{}", prefix, db);
+
+        let style = if selected {
+            theme.completion_selected
+        } else if is_current {
+            Style::new().fg(theme.completion_kw).bold()
+        } else {
+            Style::new()
+        };
+
+        frame.render_widget(
+            Paragraph::new(Line::from(text)).style(style),
+            Rect::new(inner.x, y, inner.width, 1),
+        );
+    }
+
+    if app.db_browser_databases.is_empty() && !app.db_browser_fetching {
+        let para = Paragraph::new(Line::from(" No databases")).style(Style::new().dim());
+        frame.render_widget(para, inner);
+    }
 }
 
 fn render_results(frame: &mut Frame, area: Rect, app: &App, theme: &Theme) {
