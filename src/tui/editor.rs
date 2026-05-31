@@ -104,6 +104,7 @@ fn render_results(frame: &mut Frame, area: Rect, app: &App, theme: &Theme) {
                 }
             } else if matches!(qb.view_mode, ViewMode::Table) {
                 let table_area = Rect::new(inner.x, y, inner.width, remaining);
+                let row_offset = app.block_row_scroll.get(idx).copied().unwrap_or(0);
                 table::render_table(
                     frame,
                     table_area,
@@ -111,6 +112,7 @@ fn render_results(frame: &mut Frame, area: Rect, app: &App, theme: &Theme) {
                     theme,
                     focused,
                     app.scroll_x as u16,
+                    row_offset,
                 );
 
                 let visible_rows = (result.rows.len() as u16).min(remaining.saturating_sub(1));
@@ -129,7 +131,8 @@ fn render_results(frame: &mut Frame, area: Rect, app: &App, theme: &Theme) {
                     y = bottom;
                 }
             } else {
-                let lines = vertical::render_vertical_lines(result, theme);
+                let row_offset = app.block_row_scroll.get(idx).copied().unwrap_or(0);
+                let lines = vertical::render_vertical_lines(result, theme, row_offset);
                 frame.render_widget(
                     Paragraph::new(Text::from(lines)).left_aligned(),
                     Rect::new(inner.x, y, inner.width, remaining),

@@ -63,6 +63,7 @@ impl App {
             view_mode,
         });
         self.view_modes.push(view_mode);
+        self.block_row_scroll.push(0);
         self.active_block = idx;
         self.scroll = 0;
         idx
@@ -102,6 +103,7 @@ impl App {
         let view_mode = block.view_mode;
         self.query_blocks.push(block);
         self.view_modes.push(view_mode);
+        self.block_row_scroll.push(0);
         let idx = self.query_blocks.len() - 1;
         self.active_block = idx;
         self.state = AppState::Executing;
@@ -124,9 +126,14 @@ impl App {
                             .conn_name
                             .split(" > ")
                             .next()
-                            .unwrap_or(&self.conn_name);
+                            .unwrap_or(&self.conn_name)
+                            .to_string();
                         self.conn_name = format!("{} > {}", base, db);
                         self.completion.fetch_schema(&self.db).await;
+                        if let Some(conn) = self.config.connections.get_mut(&base) {
+                            conn.database = db.to_string();
+                        }
+                        let _ = self.config.save();
                     }
                 }
             }
@@ -178,6 +185,7 @@ impl App {
     fn cmd_clear(&mut self) {
         self.query_blocks.clear();
         self.view_modes.clear();
+        self.block_row_scroll.clear();
         self.active_block = 0;
         self.scroll = 0;
     }
@@ -281,9 +289,14 @@ impl App {
             .conn_name
             .split(" > ")
             .next()
-            .unwrap_or(&self.conn_name);
+            .unwrap_or(&self.conn_name)
+            .to_string();
         self.conn_name = format!("{} > {}", base, db_name);
         self.completion.fetch_schema(&self.db).await;
+        if let Some(conn) = self.config.connections.get_mut(&base) {
+            conn.database = db_name.to_string();
+        }
+        let _ = self.config.save();
         self.database_browser_visible = false;
         self.focus = self.prev_focus;
     }

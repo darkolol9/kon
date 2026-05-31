@@ -2,7 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, List, ListItem};
+use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 
 use crate::app::App;
 
@@ -97,6 +97,9 @@ pub fn render(frame: &mut Frame, input_area: Rect, app: &App) {
         )
         .highlight_style(theme.completion_selected);
 
-    frame.render_widget(Clear, popup_area);
+    frame.render_widget(
+        Paragraph::new("").style(Style::new().bg(theme.bg)),
+        popup_area,
+    );
     frame.render_widget(list, popup_area);
 }

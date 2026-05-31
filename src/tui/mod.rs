@@ -12,12 +12,20 @@ pub mod top_bar;
 pub mod vertical;
 
 use ratatui::Frame;
+use ratatui::style::Style;
+use ratatui::widgets::Paragraph;
 
 use crate::app::{App, Panel};
 use layout::AppLayout;
 
 pub fn render(frame: &mut Frame, app: &App) {
     let layout = AppLayout::new(frame.area());
+
+    // Full-screen background
+    frame.render_widget(
+        Paragraph::new("").style(Style::new().bg(app.theme.bg)),
+        frame.area(),
+    );
 
     // Render top sticky bar
     top_bar::render(frame, layout.top_bar, app);

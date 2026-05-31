@@ -198,8 +198,8 @@ async fn handle_input_raw(
         KeyCode::Down if app.history_pos.is_some() => {
             app.history_forward();
         }
-        KeyCode::PageUp => app.scroll_page_older(1),
-        KeyCode::PageDown => app.scroll_page_newer(1),
+        KeyCode::PageUp => app.scroll_results_up(10),
+        KeyCode::PageDown => app.scroll_results_down(10),
         KeyCode::Char(c) => app.insert_char(c),
         _ => {}
     }
@@ -215,8 +215,8 @@ async fn handle_results_key(
     alt: bool,
 ) {
     match code {
-        KeyCode::PageUp => app.scroll_page_older(1),
-        KeyCode::PageDown => app.scroll_page_newer(1),
+        KeyCode::PageUp => app.scroll_results_up(10),
+        KeyCode::PageDown => app.scroll_results_down(10),
         KeyCode::Char('v') if ctrl => app.toggle_view_mode(),
         KeyCode::Left if ctrl => app.scroll_x_left(),
         KeyCode::Right if ctrl => app.scroll_x_right(),

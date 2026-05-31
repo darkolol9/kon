@@ -19,6 +19,7 @@ pub fn render_table(
     theme: &Theme,
     focused: bool,
     scroll_x: u16,
+    row_offset: usize,
 ) {
     if result.columns.is_empty() {
         let summary = format!("Query OK, {} row(s) affected", result.rows_affected);
@@ -66,8 +67,8 @@ pub fn render_table(
     )
     .style(header_style);
 
-    let rows: Vec<Row> = result
-        .rows
+    let start = row_offset.min(result.rows.len());
+    let rows: Vec<Row> = result.rows[start..]
         .iter()
         .enumerate()
         .map(|(i, row)| {

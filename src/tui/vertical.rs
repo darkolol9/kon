@@ -8,7 +8,11 @@ use ratatui::widgets::Paragraph;
 use crate::db::QueryResult;
 use crate::theme::Theme;
 
-pub fn render_vertical_lines(result: &QueryResult, theme: &Theme) -> Vec<Line<'static>> {
+pub fn render_vertical_lines(
+    result: &QueryResult,
+    theme: &Theme,
+    row_offset: usize,
+) -> Vec<Line<'static>> {
     let mut lines: Vec<Line<'static>> = Vec::new();
 
     if result.columns.is_empty() {
@@ -18,7 +22,9 @@ pub fn render_vertical_lines(result: &QueryResult, theme: &Theme) -> Vec<Line<'s
         return lines;
     }
 
-    for (row_idx, row) in result.rows.iter().enumerate() {
+    let start = row_offset.min(result.rows.len());
+    for (rel_idx, row) in result.rows[start..].iter().enumerate() {
+        let row_idx = start + rel_idx;
         if row_idx > 0 {
             lines.push(Line::from(format!("─── row {} ───", row_idx + 1)).dim());
         }
@@ -59,7 +65,7 @@ pub fn render_vertical_lines(result: &QueryResult, theme: &Theme) -> Vec<Line<'s
 
 #[allow(dead_code)]
 pub fn render(frame: &mut Frame, area: Rect, result: &QueryResult, scroll: usize, theme: &Theme) {
-    let lines = render_vertical_lines(result, theme);
+    let lines = render_vertical_lines(result, theme, scroll);
     let total = lines.len();
     let viewport = area.height as usize;
 

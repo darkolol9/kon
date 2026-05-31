@@ -84,12 +84,16 @@ impl App {
         self.cursor = self.input.len();
     }
 
-    pub fn scroll_page_older(&mut self, page_size: usize) {
-        self.scroll = self.scroll.saturating_add(page_size);
+    pub fn scroll_results_up(&mut self, page_size: usize) {
+        if let Some(offset) = self.block_row_scroll.get_mut(self.active_block) {
+            *offset = offset.saturating_sub(page_size);
+        }
     }
 
-    pub fn scroll_page_newer(&mut self, page_size: usize) {
-        self.scroll = self.scroll.saturating_sub(page_size);
+    pub fn scroll_results_down(&mut self, page_size: usize) {
+        if let Some(offset) = self.block_row_scroll.get_mut(self.active_block) {
+            *offset = offset.saturating_add(page_size);
+        }
     }
 
     pub fn scroll_x_left(&mut self) {

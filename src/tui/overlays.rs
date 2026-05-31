@@ -2,7 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, List, ListItem, Paragraph};
+use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 
 use crate::app::App;
 
@@ -24,7 +24,10 @@ pub fn render_command_palette(frame: &mut Frame, area: Rect, app: &App) {
 
     let popup_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-    frame.render_widget(Clear, popup_area);
+    frame.render_widget(
+        Paragraph::new("").style(Style::new().bg(theme.bg)),
+        popup_area,
+    );
 
     let block = Block::default()
         .borders(Borders::ALL)
@@ -212,7 +215,10 @@ pub fn render_help_overlay(frame: &mut Frame, area: Rect, app: &App) {
 
     let popup_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-    frame.render_widget(Clear, popup_area);
+    frame.render_widget(
+        Paragraph::new("").style(Style::new().bg(theme.bg)),
+        popup_area,
+    );
 
     let block = Block::default()
         .borders(Borders::ALL)
@@ -262,7 +268,10 @@ pub fn render_database_browser(frame: &mut Frame, area: Rect, app: &App) {
 
     let popup_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-    frame.render_widget(Clear, popup_area);
+    frame.render_widget(
+        Paragraph::new("").style(Style::new().bg(theme.bg)),
+        popup_area,
+    );
 
     let block = Block::default()
         .borders(Borders::ALL)

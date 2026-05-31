@@ -47,6 +47,9 @@ pub struct Theme {
     pub help_desc: Style,
     pub help_section: Style,
 
+    // app background
+    pub bg: Color,
+
     // top / bottom bars
     pub top_bar_bg: Color,
     pub top_bar_active: Style,
@@ -132,6 +135,7 @@ pub static DEFAULT: LazyLock<Theme> = LazyLock::new(|| Theme {
         .bg(Color::Blue)
         .add_modifier(Modifier::BOLD),
     top_bar_inactive: Style::new().fg(Color::White).bg(Color::Blue),
+    bg: Color::Black,
     bottom_bar_bg: Color::Black,
     bottom_bar_fg: Color::White,
 });
@@ -215,6 +219,7 @@ pub static DRACULA: LazyLock<Theme> = LazyLock::new(|| Theme {
     top_bar_inactive: Style::new()
         .fg(Color::Rgb(139, 233, 253))
         .bg(Color::Rgb(68, 71, 90)),
+    bg: Color::Rgb(40, 42, 54),
     bottom_bar_bg: Color::Rgb(33, 34, 44),
     bottom_bar_fg: Color::Rgb(248, 248, 242),
 });
@@ -298,6 +303,7 @@ pub static NORD: LazyLock<Theme> = LazyLock::new(|| Theme {
     top_bar_inactive: Style::new()
         .fg(Color::Rgb(136, 192, 208))
         .bg(Color::Rgb(46, 52, 64)),
+    bg: Color::Rgb(46, 52, 64),
     bottom_bar_bg: Color::Rgb(46, 52, 64),
     bottom_bar_fg: Color::Rgb(236, 239, 244),
 });
@@ -381,6 +387,7 @@ pub static MONOKAI: LazyLock<Theme> = LazyLock::new(|| Theme {
     top_bar_inactive: Style::new()
         .fg(Color::Rgb(102, 217, 239))
         .bg(Color::Rgb(39, 40, 34)),
+    bg: Color::Rgb(39, 40, 34),
     bottom_bar_bg: Color::Rgb(33, 34, 28),
     bottom_bar_fg: Color::Rgb(248, 248, 242),
 });
@@ -444,6 +451,7 @@ pub static LIGHT: LazyLock<Theme> = LazyLock::new(|| Theme {
         .bg(Color::Blue)
         .add_modifier(Modifier::BOLD),
     top_bar_inactive: Style::new().fg(Color::White).bg(Color::Blue),
+    bg: Color::White,
     bottom_bar_bg: Color::Gray,
     bottom_bar_fg: Color::Black,
 });
@@ -527,6 +535,7 @@ pub static TOKYO_NIGHT: LazyLock<Theme> = LazyLock::new(|| Theme {
     top_bar_inactive: Style::new()
         .fg(Color::Rgb(122, 162, 247))
         .bg(Color::Rgb(26, 27, 38)),
+    bg: Color::Rgb(26, 27, 38),
     bottom_bar_bg: Color::Rgb(26, 27, 38),
     bottom_bar_fg: Color::Rgb(169, 177, 214),
 });
@@ -610,6 +619,7 @@ pub static CATPPUCCIN: LazyLock<Theme> = LazyLock::new(|| Theme {
     top_bar_inactive: Style::new()
         .fg(Color::Rgb(137, 180, 250))
         .bg(Color::Rgb(30, 30, 46)),
+    bg: Color::Rgb(30, 30, 46),
     bottom_bar_bg: Color::Rgb(24, 24, 37),
     bottom_bar_fg: Color::Rgb(205, 214, 244),
 });
