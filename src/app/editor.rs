@@ -231,6 +231,63 @@ impl App {
         }
     }
 
+    pub async fn open_database_browser(&mut self) {
+        if self.database_browser_visible {
+            self.database_browser_visible = false;
+            self.focus = self.prev_focus;
+            return;
+        }
+        self.database_browser_visible = true;
+        self.database_browser_selection = 0;
+        self.database_browser_fetching = true;
+        self.database_browser_error = None;
+        self.database_browser_current =
+            self.conn_name.split(" > ").nth(1).unwrap_or("").to_string();
+        self.prev_focus = self.focus;
+        self.focus = Focus::DatabaseBrowser;
+
+        match self.db.fetch_databases().await {
+            Ok(dbs) => {
+                self.database_browser_databases = dbs;
+                // Jump to current database in the list
+                if let Some(pos) = self
+                    .database_browser_databases
+                    .iter()
+                    .position(|d| d == &self.database_browser_current)
+                {
+                    self.database_browser_selection = pos;
+                }
+            }
+            Err(e) => {
+                self.database_browser_databases = vec![];
+                self.database_browser_error = Some(e);
+            }
+        }
+        self.database_browser_fetching = false;
+    }
+
+    pub async fn switch_to_database(&mut self) {
+        let Some(db_name) = self
+            .database_browser_databases
+            .get(self.database_browser_selection)
+        else {
+            self.database_browser_visible = false;
+            self.focus = self.prev_focus;
+            return;
+        };
+        let sql = format!("USE `{}`", db_name);
+        let _ = self.db.execute(&sql).await;
+        let base = self
+            .conn_name
+            .split(" > ")
+            .next()
+            .unwrap_or(&self.conn_name);
+        self.conn_name = format!("{} > {}", base, db_name);
+        self.completion.fetch_schema(&self.db).await;
+        self.database_browser_visible = false;
+        self.focus = self.prev_focus;
+    }
+
     pub fn open_command_palette(&mut self) {
         self.command_palette_active = true;
         self.command_palette_input.clear();

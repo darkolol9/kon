@@ -83,6 +83,10 @@ const SECTIONS: &[(&str, &[Shortcut])] = &[
                 desc: "Switch result tab",
             },
             Shortcut {
+                key: "Ctrl+D",
+                desc: "Database browser",
+            },
+            Shortcut {
                 key: "Ctrl+S",
                 desc: "Toggle schema browser",
             },
@@ -128,6 +132,10 @@ const SECTIONS: &[(&str, &[Shortcut])] = &[
     (
         "Results",
         &[
+            Shortcut {
+                key: "PgUp/PgDn",
+                desc: "Scroll results vertically",
+            },
             Shortcut {
                 key: "Ctrl+V",
                 desc: "Toggle table/vertical view",
@@ -187,7 +195,7 @@ const SECTIONS: &[(&str, &[Shortcut])] = &[
                 desc: "Show/hide this help",
             },
             Shortcut {
-                key: "Ctrl+C/D",
+                key: "Ctrl+C/Q",
                 desc: "Quit",
             },
         ],
@@ -238,4 +246,72 @@ pub fn render_help_overlay(frame: &mut Frame, area: Rect, app: &App) {
 
     let para = Paragraph::new(ratatui::text::Text::from(lines)).left_aligned();
     frame.render_widget(para, inner);
+}
+
+// ── Database Browser ──
+
+pub fn render_database_browser(frame: &mut Frame, area: Rect, app: &App) {
+    let theme = app.theme;
+
+    let max_visible = 12.min(app.database_browser_databases.len().max(1));
+    let popup_height = max_visible as u16 + 4;
+    let popup_width = 40;
+
+    let popup_x = area.x + (area.width.saturating_sub(popup_width)) / 2;
+    let popup_y = area.y + (area.height.saturating_sub(popup_height)) / 2;
+
+    let popup_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
+
+    frame.render_widget(Clear, popup_area);
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(" Databases ")
+        .border_style(theme.completion_border);
+    let inner = block.inner(popup_area);
+    frame.render_widget(&block, popup_area);
+
+    if app.database_browser_fetching {
+        let para = Paragraph::new(Line::from(Span::styled(" Loading...", Style::new().dim())));
+        frame.render_widget(para, inner);
+        return;
+    }
+
+    if let Some(err) = &app.database_browser_error {
+        let para = Paragraph::new(Line::from(vec![
+            Span::raw(" Error: "),
+            Span::styled(err.as_str(), theme.error),
+        ]));
+        frame.render_widget(para, inner);
+        return;
+    }
+
+    if app.database_browser_databases.is_empty() {
+        let para = Paragraph::new(Line::from(Span::raw(" No databases found")));
+        frame.render_widget(para, inner);
+        return;
+    }
+
+    let items: Vec<ListItem> = app
+        .database_browser_databases
+        .iter()
+        .enumerate()
+        .map(|(i, db_name)| {
+            let selected = i == app.database_browser_selection;
+            let is_current = *db_name == app.database_browser_current;
+            let marker = if is_current { " ◉ " } else { " ○ " };
+            let style = if selected {
+                theme.command_palette_selected
+            } else {
+                Style::new()
+            };
+            ListItem::new(Line::from(vec![
+                Span::styled(marker, style),
+                Span::styled(db_name.clone(), style),
+            ]))
+        })
+        .collect();
+
+    let list = List::new(items).highlight_style(theme.command_palette_selected);
+    frame.render_widget(list, inner);
 }

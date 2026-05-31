@@ -93,10 +93,10 @@ impl App {
     }
 
     pub fn scroll_x_left(&mut self) {
-        self.scroll_x = self.scroll_x.saturating_sub(4);
+        self.scroll_x = self.scroll_x.saturating_sub(8);
     }
 
     pub fn scroll_x_right(&mut self) {
-        self.scroll_x = self.scroll_x.saturating_add(4);
+        self.scroll_x = self.scroll_x.saturating_add(8);
     }
 }

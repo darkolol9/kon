@@ -36,6 +36,7 @@ pub enum Focus {
     HistoryBrowser,
     CommandPalette,
     HelpOverlay,
+    DatabaseBrowser,
     ConnectionsList,
     ConnectionForm,
     SettingsList,

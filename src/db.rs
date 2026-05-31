@@ -83,6 +83,21 @@ impl Database {
         }
     }
 
+    pub async fn fetch_databases(&self) -> Result<Vec<String>, String> {
+        let rows = raw_sql("SHOW DATABASES")
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| format!("Failed to fetch databases: {e}"))?;
+
+        let mut databases = Vec::new();
+        for row in &rows {
+            if let Ok(s) = row.try_get::<String, _>(0) {
+                databases.push(s);
+            }
+        }
+        Ok(databases)
+    }
+
     pub async fn fetch_tables(&self) -> Result<Vec<String>, String> {
         let rows = raw_sql("SHOW TABLES")
             .fetch_all(&self.pool)

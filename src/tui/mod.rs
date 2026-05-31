@@ -53,6 +53,9 @@ pub fn render(frame: &mut Frame, app: &App) {
     if app.help_overlay_active {
         overlays::render_help_overlay(frame, frame.area(), app);
     }
+    if app.database_browser_visible {
+        overlays::render_database_browser(frame, frame.area(), app);
+    }
 
     // Render bottom sticky bar
     bottom_bar::render(frame, layout.bottom_bar, app);
