@@ -150,17 +150,26 @@ pub fn format_result_as_text(result: &QueryResult) -> Vec<Line<'static>> {
     let mut header = String::new();
     for (i, col) in result.columns.iter().enumerate() {
         if i > 0 {
-            header.push_str(" | ");
+            header.push_str(" │ ");
         }
         header.push_str(col);
     }
     lines.push(Line::from(header));
 
+    let mut sep = String::new();
+    for (i, col) in result.columns.iter().enumerate() {
+        if i > 0 {
+            sep.push_str("─┼─");
+        }
+        sep.push_str(&"─".repeat(col.len()));
+    }
+    lines.push(Line::from(sep));
+
     for row in &result.rows {
         let mut row_str = String::new();
         for (i, val) in row.iter().enumerate() {
             if i > 0 {
-                row_str.push_str(" | ");
+                row_str.push_str(" │ ");
             }
             row_str.push_str(val.as_deref().unwrap_or("NULL"));
         }

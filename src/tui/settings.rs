@@ -13,7 +13,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     let block = Block::default()
         .borders(Borders::ALL)
         .title(" Settings — Theme ")
-        .border_style(app.theme.completion_border);
+        .border_style(app.theme.border_primary);
 
     let inner = block.inner(area);
     frame.render_widget(block, area);
@@ -26,7 +26,6 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
             let selected = i == app.settings_selection;
 
             let marker = if is_current { " ◉ " } else { " ○ " };
-            let display = format!("{}{}", marker, name);
 
             let style = if selected {
                 app.theme.picker_selected
@@ -36,7 +35,16 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
                 Style::new()
             };
 
-            ListItem::new(Line::from(Span::styled(display, style)))
+            let t = theme::from_name(name).unwrap_or(app.theme);
+            let sample_spans = t.sample();
+
+            let mut spans = Vec::with_capacity(sample_spans.len() + 3);
+            spans.push(Span::styled(marker, style));
+            spans.push(Span::styled(format!("{:<16}", name), style));
+            spans.push(Span::raw(" "));
+            spans.extend(sample_spans);
+
+            ListItem::new(Line::from(spans))
         })
         .collect();
 

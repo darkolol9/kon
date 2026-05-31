@@ -2,7 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::Paragraph;
 
 use crate::app::{App, Panel};
 use crate::theme::Theme;
@@ -29,17 +29,12 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
                     .saturating_sub(conn_name.len() as u16) as usize,
             ),
         ),
-        Span::styled(conn_name, Style::new().dim()),
+        Span::styled(conn_name, Style::new().fg(theme.bottom_bar_fg).dim()),
     ]);
 
     let para = Paragraph::new(line)
         .style(Style::new().bg(theme.top_bar_bg))
         .left_aligned();
-
-    let block = Block::default()
-        .borders(Borders::BOTTOM)
-        .border_style(theme.border_secondary);
-    frame.render_widget(block, area);
     frame.render_widget(para, area);
 }
 

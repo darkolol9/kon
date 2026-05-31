@@ -29,22 +29,19 @@ pub fn render(frame: &mut Frame, input_area: Rect, app: &App) {
         .iter()
         .enumerate()
         .map(|(i, cand)| {
-            let prefix = match cand.kind {
-                "keyword" => " K ",
-                "table" => " T ",
-                "column" => " C ",
-                "function" => " F ",
-                "command" => " M ",
-                _ => " ? ",
+            let (prefix, prefix_color) = match cand.kind {
+                "keyword" => (" K ", theme.completion_kw),
+                "table" => (" T ", theme.completion_table),
+                "column" => (" C ", theme.completion_column),
+                "function" => (" F ", theme.completion_fn),
+                "command" => (" M ", theme.completion_command),
+                _ => (" ? ", theme.bottom_bar_fg),
             };
-            let prefix_style = match cand.kind {
-                "keyword" => Style::new().fg(theme.completion_kw),
-                "table" => Style::new().fg(theme.completion_table),
-                "column" => Style::new().fg(theme.completion_column),
-                "function" => Style::new().fg(theme.completion_fn),
-                "command" => Style::new().fg(theme.completion_command),
-                _ => Style::new(),
-            };
+
+            let badge = Span::styled(
+                format!(" {} ", prefix.trim()),
+                Style::new().fg(theme.bg).bg(prefix_color),
+            );
 
             let suffix = cand
                 .table
@@ -53,11 +50,6 @@ pub fn render(frame: &mut Frame, input_area: Rect, app: &App) {
                 .unwrap_or_default();
 
             let selected = i == app.completion.selection();
-            let item_style = if selected {
-                theme.completion_selected
-            } else {
-                Style::new()
-            };
 
             let display =
                 if selected && cand.display.len() + suffix.len() + 3 > actual_width as usize {
@@ -74,9 +66,16 @@ pub fn render(frame: &mut Frame, input_area: Rect, app: &App) {
                     cand.display.clone()
                 };
 
+            let text_style = if selected {
+                theme.completion_selected
+            } else {
+                Style::new()
+            };
+
             ListItem::new(Line::from(vec![
-                Span::styled(prefix, prefix_style),
-                Span::styled(display.clone(), item_style),
+                badge,
+                Span::raw(" "),
+                Span::styled(display, text_style),
                 Span::styled(suffix, Style::new().dim()),
             ]))
         })

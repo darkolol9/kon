@@ -1,5 +1,5 @@
 use ratatui::Frame;
-use ratatui::layout::{Margin, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Paragraph};
@@ -85,7 +85,7 @@ fn render_database_panel(frame: &mut Frame, area: Rect, app: &App, theme: &Theme
         let selected = i == app.db_browser_selection;
         let is_current = db == current_db;
 
-        let prefix = if is_current { " * " } else { "   " };
+        let prefix = if is_current { " ◉ " } else { "   " };
         let text = format!("{}{}", prefix, db);
 
         let style = if selected {
@@ -142,9 +142,16 @@ fn render_results(frame: &mut Frame, area: Rect, app: &App, theme: &Theme) {
         let focused = idx == app.active_block;
 
         let header = if focused {
-            Line::from(format!("▶  {}", qb.sql)).style(theme.sql_focused)
+            Line::from(vec![
+                Span::styled("▶", Style::new().fg(theme.completion_kw)),
+                Span::raw(" "),
+                Span::styled(qb.sql.as_str(), theme.sql_focused),
+            ])
         } else {
-            Line::from(format!("   {}", qb.sql)).style(theme.sql_unfocused)
+            Line::from(vec![
+                Span::raw("  "),
+                Span::styled(qb.sql.as_str(), theme.sql_unfocused),
+            ])
         };
         frame.render_widget(
             Paragraph::new(header),
@@ -158,7 +165,10 @@ fn render_results(frame: &mut Frame, area: Rect, app: &App, theme: &Theme) {
         let remaining = bottom - y;
 
         if let Some(err) = &qb.error {
-            let err_line = Line::from(format!("ERROR: {err}")).style(theme.error);
+            let err_line = Line::from(vec![
+                Span::styled("✖ ", theme.error),
+                Span::styled(err.as_str(), theme.error),
+            ]);
             frame.render_widget(
                 Paragraph::new(err_line),
                 Rect::new(inner.x, y, inner.width, 1),
@@ -166,16 +176,19 @@ fn render_results(frame: &mut Frame, area: Rect, app: &App, theme: &Theme) {
             y += 1;
         } else if let Some(result) = &qb.result {
             if result.columns.is_empty() {
-                let summary = format!("Query OK, {} row(s) affected", result.rows_affected);
+                let summary = format!("{} row(s) affected", result.rows_affected);
                 frame.render_widget(
-                    Paragraph::new(Line::from(summary).style(theme.summary)),
+                    Paragraph::new(Line::from(vec![
+                        Span::styled("✔ ", theme.summary),
+                        Span::styled(summary, theme.summary),
+                    ])),
                     Rect::new(inner.x, y, inner.width, 1),
                 );
                 y += 1;
                 if y < bottom {
                     frame.render_widget(
                         Paragraph::new(
-                            Line::from(format!("({} ms)", result.execution_time_ms)).dim(),
+                            Line::from(format!("  ({} ms)", result.execution_time_ms)).dim(),
                         ),
                         Rect::new(inner.x, y, inner.width, 1),
                     );
@@ -230,7 +243,10 @@ fn render_input(frame: &mut Frame, area: Rect, app: &App, theme: &Theme) {
     let prefix = format!(" {}> ", app.conn_name);
 
     let input_line = if matches!(app.state, AppState::Executing) {
-        Line::from(" Executing...")
+        Line::from(vec![
+            Span::styled(" ● ", theme.error),
+            Span::styled("Executing...", Style::new().dim()),
+        ])
     } else {
         let tokens = syntax::highlight(&app.input, theme);
         let mut spans: Vec<Span> = Vec::with_capacity(tokens.len() + 1);
@@ -262,14 +278,15 @@ fn render_input(frame: &mut Frame, area: Rect, app: &App, theme: &Theme) {
     let block = Block::bordered()
         .title(app.conn_name.as_str())
         .border_style(theme.border_primary);
+    let inner = block.inner(area);
+
+    frame.render_widget(block, area);
 
     let para = Paragraph::new(Text::from(full_line))
         .style(inner_style)
-        .block(block)
         .left_aligned();
-    frame.render_widget(para, area);
+    frame.render_widget(para, inner);
 
-    let inner = area.inner(Margin::new(1, 1));
     let cursor_x = inner.x + prefix.len() as u16 + app.cursor as u16;
     let cursor_y = inner.y;
     frame.set_cursor_position((cursor_x.min(inner.right().saturating_sub(1)), cursor_y));

@@ -19,7 +19,7 @@ fn render_list(frame: &mut Frame, area: Rect, app: &App) {
     let block = Block::default()
         .borders(Borders::ALL)
         .title(" Connections ")
-        .border_style(theme.schema_browser_border);
+        .border_style(theme.border_primary);
 
     let inner = block.inner(area);
     frame.render_widget(block, area);
@@ -78,7 +78,7 @@ fn render_form(frame: &mut Frame, area: Rect, app: &App) {
             ConnectionMode::Editing(_) => " Edit Connection ",
             _ => " Connection ",
         })
-        .border_style(theme.schema_browser_border);
+        .border_style(theme.border_primary);
 
     let inner = block.inner(area);
     frame.render_widget(block, area);
@@ -96,16 +96,37 @@ fn render_form(frame: &mut Frame, area: Rect, app: &App) {
     for (i, (label, value)) in fields.iter().enumerate() {
         let is_focused = i == app.conn_form_focus;
         let prefix = if is_focused { "▶ " } else { "  " };
+
         let label_style = if is_focused {
             theme.sql_focused
         } else {
             Style::new().bold()
         };
+
+        let value_display = if value.is_empty() && !is_focused {
+            " (empty) ".to_string()
+        } else {
+            let masked = *label == "Password" && !value.is_empty();
+            if masked {
+                "·".repeat(value.len())
+            } else {
+                value.to_string()
+            }
+        };
+
+        let value_style = if is_focused {
+            Style::new().bg(theme.input_bg).fg(theme.input_fg)
+        } else if value.is_empty() {
+            Style::new().dim()
+        } else {
+            Style::new()
+        };
+
         lines.push(Line::from(vec![
             Span::raw(prefix),
             Span::styled(format!("{:<10}", label), label_style),
-            Span::raw(": "),
-            Span::styled(value.to_string(), Style::new()),
+            Span::raw(" "),
+            Span::styled(value_display, value_style),
         ]));
     }
 

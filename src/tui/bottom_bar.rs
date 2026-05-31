@@ -1,64 +1,144 @@
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
-use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::Paragraph;
 
 use crate::app::{App, AppState, Focus, Panel};
 
 pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     let theme = app.theme;
 
-    let text = match app.state {
-        AppState::Executing => Line::from(" Executing..."),
+    let text: Vec<Span> = match app.state {
+        AppState::Executing => vec![
+            Span::styled(" ● ", theme.error),
+            Span::styled("Executing...", Style::new().fg(theme.bottom_bar_fg)),
+        ],
         _ => match (app.active_panel, app.focus) {
-            (Panel::Editor, Focus::Input) if app.command_palette_active => {
-                Line::from(" Type to filter commands  ↑↓ Navigate  Enter Select  Esc Cancel")
+            (Panel::Editor, _) if app.help_overlay_active || app.command_palette_active => {
+                vec![Span::styled(
+                    " ⎋ Close ",
+                    Style::new().fg(theme.bottom_bar_fg),
+                )]
             }
-            (Panel::Editor, _) if app.help_overlay_active => {
-                Line::from(" Press any key to close help")
-            }
-            (Panel::Editor, Focus::Input) => Line::from(
-                " ↵ Execute  ⌃D Databases  ⌃P Palette  ⌃S Schema  ⌃H History  ⇥ Complete  ⇞/⇟ Scroll  ⌃L/R Scroll  ? Help  ⌃Q Quit  |  F1 Editor  F2 Conn  F3 Settings",
-            ),
-            (Panel::Editor, Focus::Results) => Line::from(
-                " ⌃V Toggle View  ⌃O Open in Editor  ⌃D Databases  ⌃P Palette  ⇞/⇟ Scroll  ⌃L/R Scroll  ? Help  |  F1 Editor  F2 Conn  F3 Settings",
-            ),
-            (Panel::Editor, Focus::SchemaBrowser) => Line::from(
-                " ↑↓ Navigate  ↵ Insert SELECT  ⎋ Close  |  F1 Editor  F2 Conn  F3 Settings",
-            ),
-            (Panel::Editor, Focus::DatabaseBrowser) => Line::from(
-                " ↑↓ Navigate  ↵ Use Database  ⌃D Close  |  F1 Editor  F2 Conn  F3 Settings",
-            ),
-            (Panel::Editor, Focus::HistoryBrowser) => Line::from(
-                " ↑↓ Navigate  ↵ Paste to Input  ⎋ Close  |  F1 Editor  F2 Conn  F3 Settings",
-            ),
+            (Panel::Editor, Focus::Input) => vec![
+                shortcut("↵ Execute", theme),
+                sep(),
+                shortcut("⌃D Browsers", theme),
+                shortcut("⌃P Palette", theme),
+                shortcut("⌃S Schema", theme),
+                sep(),
+                shortcut("⇞ Scroll", theme),
+                shortcut("? Help", theme),
+                sep(),
+                shortcut("F1 Ed", theme),
+                shortcut("F2 Conn", theme),
+                shortcut("F3 Set", theme),
+            ],
+            (Panel::Editor, Focus::Results) => vec![
+                shortcut("⌃V View", theme),
+                shortcut("⌃O Editor", theme),
+                sep(),
+                shortcut("⇞ Scroll", theme),
+                sep(),
+                shortcut("F1 Ed", theme),
+                shortcut("F2 Conn", theme),
+                shortcut("F3 Set", theme),
+            ],
+            (Panel::Editor, Focus::SchemaBrowser) => vec![
+                shortcut("↑↓ Nav", theme),
+                shortcut("↵ Insert", theme),
+                sep(),
+                shortcut("⎋ Close", theme),
+                sep(),
+                shortcut("F1 Ed", theme),
+                shortcut("F2 Conn", theme),
+                shortcut("F3 Set", theme),
+            ],
+            (Panel::Editor, Focus::DatabaseBrowser) => vec![
+                shortcut("↑↓ Nav", theme),
+                shortcut("↵ Select", theme),
+                sep(),
+                shortcut("⎋ Close", theme),
+                sep(),
+                shortcut("F1 Ed", theme),
+                shortcut("F2 Conn", theme),
+                shortcut("F3 Set", theme),
+            ],
+            (Panel::Editor, Focus::HistoryBrowser) => vec![
+                shortcut("↑↓ Nav", theme),
+                shortcut("↵ Paste", theme),
+                sep(),
+                shortcut("⎋ Close", theme),
+                sep(),
+                shortcut("F1 Ed", theme),
+                shortcut("F2 Conn", theme),
+                shortcut("F3 Set", theme),
+            ],
             (Panel::Connections, Focus::ConnectionsList) => {
                 if app.confirm_delete.is_some() {
-                    Line::from(" Delete this connection?  y Yes  n No")
+                    vec![
+                        Span::styled(
+                            " Delete? ",
+                            theme.error.add_modifier(ratatui::style::Modifier::BOLD),
+                        ),
+                        shortcut("y Yes", theme),
+                        shortcut("n No", theme),
+                    ]
                 } else {
-                    Line::from(
-                        " ↑↓ Navigate  ↵ Activate  n New  e Edit  d Delete  ⎋ Back  |  F1 Editor  F2 Conn  F3 Settings",
-                    )
+                    vec![
+                        shortcut("↑↓ Nav", theme),
+                        shortcut("↵ Activate", theme),
+                        sep(),
+                        shortcut("n New", theme),
+                        shortcut("e Edit", theme),
+                        shortcut("d Delete", theme),
+                        sep(),
+                        shortcut("⎋ Back", theme),
+                        sep(),
+                        shortcut("F1 Ed", theme),
+                        shortcut("F2 Conn", theme),
+                        shortcut("F3 Set", theme),
+                    ]
                 }
             }
-            (Panel::Connections, Focus::ConnectionForm) => {
-                Line::from(" ⇥ Next Field  ↵ Save  ⎋ Cancel  |  F1 Editor  F2 Conn  F3 Settings")
-            }
-            (Panel::Settings, Focus::SettingsList) => Line::from(
-                " ↑↓ Navigate  ↵ Apply Theme  ⎋ Back  |  F1 Editor  F2 Conn  F3 Settings",
-            ),
-            _ => Line::from(" F1 Editor  F2 Conn  F3 Settings"),
+            (Panel::Connections, Focus::ConnectionForm) => vec![
+                shortcut("⇥ Next", theme),
+                shortcut("↵ Save", theme),
+                shortcut("⎋ Cancel", theme),
+                sep(),
+                shortcut("F1 Ed", theme),
+                shortcut("F2 Conn", theme),
+                shortcut("F3 Set", theme),
+            ],
+            (Panel::Settings, Focus::SettingsList) => vec![
+                shortcut("↑↓ Nav", theme),
+                shortcut("↵ Apply", theme),
+                sep(),
+                shortcut("⎋ Back", theme),
+                sep(),
+                shortcut("F1 Ed", theme),
+                shortcut("F2 Conn", theme),
+                shortcut("F3 Set", theme),
+            ],
+            _ => vec![
+                shortcut("F1 Ed", theme),
+                shortcut("F2 Conn", theme),
+                shortcut("F3 Set", theme),
+            ],
         },
     };
 
-    let para = Paragraph::new(text)
-        .style(Style::new().bg(theme.bottom_bar_bg).fg(theme.bottom_bar_fg))
+    let para = Paragraph::new(Line::from(text))
+        .style(Style::new().bg(theme.bottom_bar_bg))
         .left_aligned();
-
-    let block = Block::default()
-        .borders(Borders::TOP)
-        .border_style(theme.border_secondary);
-    frame.render_widget(block, area);
     frame.render_widget(para, area);
+}
+
+fn sep() -> Span<'static> {
+    Span::styled(" │ ", Style::new().dim())
+}
+
+fn shortcut(label: &str, theme: &crate::theme::Theme) -> Span<'static> {
+    Span::styled(label.to_string(), Style::new().fg(theme.bottom_bar_fg))
 }

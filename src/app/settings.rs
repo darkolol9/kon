@@ -1,14 +1,12 @@
 use crate::app::App;
-use crate::config::Config;
 use crate::theme;
 
 impl App {
     pub fn set_theme(&mut self, name: &str) {
         if let Some(t) = theme::from_name(name) {
             self.theme = t;
-            let mut config = Config::load();
-            config.theme = Some(name.to_string());
-            let _ = config.save();
+            self.config.theme = Some(name.to_string());
+            let _ = self.config.save();
         }
     }
 

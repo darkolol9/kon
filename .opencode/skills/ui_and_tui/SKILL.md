@@ -115,6 +115,8 @@ Treat each major screen as an independent module responsible for its own renderi
 
 Use this skill whenever building or designing:
 
+
+* Terminal UIs
 * Ratatui applications
 * Rust terminal dashboards
 * Terminal file managers

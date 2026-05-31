@@ -15,9 +15,9 @@ pub fn render_command_palette(frame: &mut Frame, area: Rect, app: &App) {
         return;
     }
 
-    let max_visible = 10.min(candidates.len());
-    let popup_height = max_visible as u16 + 4;
-    let popup_width = 52;
+    let max_visible = 12.min(candidates.len());
+    let popup_height = max_visible as u16 + 5;
+    let popup_width = 56;
 
     let popup_x = area.x + (area.width.saturating_sub(popup_width)) / 2;
     let popup_y = area.y + (area.height.saturating_sub(popup_height)) / 2;
@@ -59,9 +59,21 @@ pub fn render_command_palette(frame: &mut Frame, area: Rect, app: &App) {
             } else {
                 Style::new().dim()
             };
+
+            let badge = Span::styled(
+                if selected { " ▶ " } else { "    " },
+                if selected {
+                    theme.command_palette_selected
+                } else {
+                    Style::new()
+                },
+            );
+
             ListItem::new(Line::from(vec![
-                Span::styled(format!(" /{}", entry.name), style),
-                Span::styled(format!("  {}", entry.desc), desc_style),
+                badge,
+                Span::styled(format!("/{}", entry.name), style),
+                Span::raw(" "),
+                Span::styled(entry.desc, desc_style),
             ]))
         })
         .collect();
@@ -208,7 +220,7 @@ const SECTIONS: &[(&str, &[Shortcut])] = &[
 pub fn render_help_overlay(frame: &mut Frame, area: Rect, app: &App) {
     let theme = app.theme;
     let popup_width = 56u16.min(area.width.saturating_sub(4));
-    let popup_height = 22u16.min(area.height.saturating_sub(2));
+    let popup_height = 24u16.min(area.height.saturating_sub(2));
 
     let popup_x = area.x + (area.width.saturating_sub(popup_width)) / 2;
     let popup_y = area.y + (area.height.saturating_sub(popup_height)) / 2;
@@ -236,9 +248,14 @@ pub fn render_help_overlay(frame: &mut Frame, area: Rect, app: &App) {
             format!(" {} ", section_name),
             theme.help_section,
         )));
+
+        let max_key_len = shortcuts.iter().map(|s| s.key.len()).max().unwrap_or(0);
         for sc in *shortcuts {
+            let padded = format!("{:width$}", sc.key, width = max_key_len);
             lines.push(Line::from(vec![
-                Span::styled(format!("   {:<14}", sc.key), theme.help_key),
+                Span::raw("   "),
+                Span::styled(padded, theme.help_key),
+                Span::styled(" ─ ", Style::new().dim()),
                 Span::styled(sc.desc, theme.help_desc),
             ]));
         }
