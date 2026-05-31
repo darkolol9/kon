@@ -9,8 +9,6 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Set up a new connection (interactive prompts)
-    Connect,
     /// List saved connections
     Ls,
     /// Set active connection by name (supports wildcard *)

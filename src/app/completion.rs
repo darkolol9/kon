@@ -184,6 +184,7 @@ impl CompletionEngine {
     pub async fn fetch_schema(&mut self, db: &Database) {
         if let Ok(tables) = db.fetch_tables().await {
             self.tables = tables.clone();
+            self.tables.sort_by_key(|a| a.to_lowercase());
             for table in &tables {
                 if let Ok(cols) = db.fetch_columns(table).await {
                     self.columns.insert(table.clone(), cols);

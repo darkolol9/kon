@@ -78,6 +78,11 @@ impl App {
             return;
         }
 
+        if self.db.is_none() {
+            self.set_toast("No database connection. Set up a connection first.");
+            return;
+        }
+
         if raw.starts_with('/') {
             self.handle_command(&raw).await;
             return;
@@ -111,27 +116,30 @@ impl App {
 
         let is_use = sql.trim_start().to_uppercase().starts_with("USE ");
 
-        match self.db.execute(&sql).await {
+        let db = self.db.as_ref().unwrap();
+        match db.execute(&sql).await {
             Ok(result) => {
                 self.query_blocks[idx].result = Some(result);
                 if is_use {
-                    let db = sql
+                    let db_name = sql
                         .trim_start()
                         .strip_prefix("USE ")
                         .or_else(|| sql.trim_start().strip_prefix("use "))
                         .map(|s| s.trim().trim_matches('`').trim_matches('\''))
                         .unwrap_or("");
-                    if !db.is_empty() {
+                    if !db_name.is_empty() {
                         let base = self
                             .conn_name
                             .split(" > ")
                             .next()
                             .unwrap_or(&self.conn_name)
                             .to_string();
-                        self.conn_name = format!("{} > {}", base, db);
-                        self.completion.fetch_schema(&self.db).await;
+                        self.conn_name = format!("{} > {}", base, db_name);
+                        self.completion
+                            .fetch_schema(self.db.as_ref().unwrap())
+                            .await;
                         if let Some(conn) = self.config.connections.get_mut(&base) {
-                            conn.database = db.to_string();
+                            conn.database = db_name.to_string();
                         }
                         let _ = self.config.save();
                     }
@@ -196,14 +204,16 @@ impl App {
 
     async fn cmd_tables(&mut self) {
         let idx = self.push_block("# tables", ViewMode::Table);
-        match self.db.execute("SHOW TABLES").await {
+        match self.db.as_ref().unwrap().execute("SHOW TABLES").await {
             Ok(result) => self.query_blocks[idx].result = Some(result),
             Err(e) => self.query_blocks[idx].error = Some(e),
         }
     }
 
     async fn cmd_refresh(&mut self) {
-        self.completion.fetch_schema(&self.db).await;
+        if let Some(ref db) = self.db {
+            self.completion.fetch_schema(db).await;
+        }
         self.set_toast("Schema refreshed");
     }
 }
@@ -211,7 +221,9 @@ impl App {
 /// Schema browser
 impl App {
     pub async fn refresh_schema(&mut self) {
-        self.completion.fetch_schema(&self.db).await;
+        if let Some(ref db) = self.db {
+            self.completion.fetch_schema(db).await;
+        }
         self.set_toast("Schema refreshed");
     }
 }
@@ -219,6 +231,10 @@ impl App {
 /// Database browser
 impl App {
     pub async fn toggle_database_browser(&mut self) {
+        if self.db.is_none() {
+            self.set_toast("No database connection.");
+            return;
+        }
         if self.db_browser_visible {
             self.db_browser_visible = false;
             self.focus = self.prev_focus;
@@ -233,7 +249,7 @@ impl App {
 
         let current_db = self.conn_name.split(" > ").nth(1).unwrap_or("").to_string();
 
-        match self.db.fetch_databases().await {
+        match self.db.as_ref().unwrap().fetch_databases().await {
             Ok(dbs) => {
                 self.db_browser_databases = dbs;
                 if let Some(pos) = self
@@ -259,7 +275,7 @@ impl App {
             return;
         };
         let sql = format!("USE `{}`", db_name);
-        let _ = self.db.execute(&sql).await;
+        let _ = self.db.as_ref().unwrap().execute(&sql).await;
         let base = self
             .conn_name
             .split(" > ")
@@ -267,7 +283,9 @@ impl App {
             .unwrap_or(&self.conn_name)
             .to_string();
         self.conn_name = format!("{} > {}", base, db_name);
-        self.completion.fetch_schema(&self.db).await;
+        self.completion
+            .fetch_schema(self.db.as_ref().unwrap())
+            .await;
         if let Some(conn) = self.config.connections.get_mut(&base) {
             conn.database = db_name.to_string();
         }

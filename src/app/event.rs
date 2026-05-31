@@ -10,7 +10,9 @@ const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const ALT: KeyModifiers = KeyModifiers::ALT;
 
 pub async fn run(mut terminal: DefaultTerminal, mut app: App) -> Result<(), String> {
-    app.completion.fetch_schema(&app.db).await;
+    if let Some(ref db) = app.db {
+        app.completion.fetch_schema(db).await;
+    }
 
     loop {
         // Check toast expiry
@@ -199,12 +201,8 @@ async fn handle_input_raw(
         KeyCode::Right => app.move_right(),
         KeyCode::Home => app.move_home(),
         KeyCode::End => app.move_end(),
-        KeyCode::Up if !app.input.is_empty() || app.history_pos.is_some() => {
-            app.history_back();
-        }
-        KeyCode::Down if app.history_pos.is_some() => {
-            app.history_forward();
-        }
+        KeyCode::Up => app.history_back(),
+        KeyCode::Down if app.history_pos.is_some() => app.history_forward(),
         KeyCode::PageUp => app.scroll_results_up(10),
         KeyCode::PageDown => app.scroll_results_down(10),
         KeyCode::Char(c) => app.insert_char(c),
@@ -407,7 +405,7 @@ async fn handle_connections_key(app: &mut App, code: KeyCode) {
             }
         }
         KeyCode::Enter => {
-            app.activate_connection(app.connection_selection);
+            app.activate_connection(app.connection_selection).await;
         }
         KeyCode::Char('n') | KeyCode::Char('N') => {
             app.start_add_connection();
@@ -436,7 +434,7 @@ async fn handle_connection_form_key(app: &mut App, code: KeyCode) {
     match code {
         KeyCode::Tab => app.next_connection_form_field(),
         KeyCode::BackTab => app.prev_connection_form_field(),
-        KeyCode::Enter => app.submit_connection_form(),
+        KeyCode::Enter => app.submit_connection_form().await,
         KeyCode::Esc => app.cancel_connection_form(),
         KeyCode::Char(c) => app.connection_form_insert(c),
         KeyCode::Backspace => app.connection_form_delete(),

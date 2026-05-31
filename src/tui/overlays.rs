@@ -253,5 +253,3 @@ pub fn render_help_overlay(frame: &mut Frame, area: Rect, app: &App) {
     let para = Paragraph::new(ratatui::text::Text::from(lines)).left_aligned();
     frame.render_widget(para, inner);
 }
-
-

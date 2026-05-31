@@ -8,8 +8,8 @@ mod tui;
 
 use clap::Parser;
 use cli::{Cli, Commands};
-use config::{Config, Connection};
-use inquire::{Confirm, Password, Select, Text};
+use config::Config;
+use inquire::Select;
 use std::process;
 
 fn print_header(text: &str) {
@@ -31,10 +31,9 @@ async fn main() {
     let mut config = Config::load();
 
     let result = match cli.command {
-        Some(Commands::Connect) => cmd_connect(&mut config),
         Some(Commands::Ls) => cmd_ls(&config),
         Some(Commands::Set { pattern }) => cmd_set(&mut config, &pattern),
-        None => cmd_repl(&config).await,
+        None => cmd_repl(&mut config).await,
     };
 
     if let Err(e) = result {
@@ -43,68 +42,10 @@ async fn main() {
     }
 }
 
-fn cmd_connect(config: &mut Config) -> Result<(), String> {
-    print_header("New Connection");
-
-    let name = Text::new("Connection name:")
-        .with_placeholder("e.g. my-db, staging, prod")
-        .prompt()
-        .map_err(|e| format!("Prompt failed: {e}"))?;
-
-    let host = Text::new("Host:")
-        .with_default("localhost")
-        .prompt()
-        .map_err(|e| format!("Prompt failed: {e}"))?;
-
-    let port: u16 = Text::new("Port:")
-        .with_default("3306")
-        .prompt()
-        .map_err(|e| format!("Prompt failed: {e}"))?
-        .parse()
-        .map_err(|_| "Invalid port number".to_string())?;
-
-    let user = Text::new("User:")
-        .with_default("root")
-        .prompt()
-        .map_err(|e| format!("Prompt failed: {e}"))?;
-
-    let password = Password::new("Password:")
-        .without_confirmation()
-        .prompt()
-        .map_err(|e| format!("Prompt failed: {e}"))?;
-
-    let database = Text::new("Database:")
-        .with_default("mysql")
-        .prompt()
-        .map_err(|e| format!("Prompt failed: {e}"))?;
-
-    let conn = Connection {
-        host,
-        port,
-        user,
-        password,
-        database,
-    };
-
-    let set_active = Confirm::new("Set as active connection?")
-        .with_default(true)
-        .prompt()
-        .map_err(|e| format!("Prompt failed: {e}"))?;
-
-    config.add_connection(name.clone(), conn)?;
-
-    if set_active {
-        config.set_active(&name)?;
-    }
-
-    print_success(&format!("Connection '{}' saved", name));
-    Ok(())
-}
-
 fn cmd_ls(config: &Config) -> Result<(), String> {
     let list = config.list_connections();
     if list.is_empty() {
-        println!("No connections saved. Use \x1b[1mkon connect\x1b[0m to add one.");
+        println!("No connections saved. Run \x1b[1mkon\x1b[0m to set one up.");
         return Ok(());
     }
 
@@ -157,8 +98,10 @@ fn cmd_set(config: &mut Config, pattern: &str) -> Result<(), String> {
     Ok(())
 }
 
-async fn cmd_repl(config: &Config) -> Result<(), String> {
+async fn cmd_repl(config: &mut Config) -> Result<(), String> {
     let active = config.active();
+    let theme_name = config.theme.as_deref().unwrap_or("default");
+    let theme = theme::from_name(theme_name).unwrap_or(&theme::DEFAULT);
     match active {
         Some((name, conn)) => {
             let db = db::Database::connect(conn).await?;
@@ -167,15 +110,14 @@ async fn cmd_repl(config: &Config) -> Result<(), String> {
             } else {
                 format!("{} ({})", name, conn.database)
             };
-            let theme_name = config.theme.as_deref().unwrap_or("default");
-            let theme = theme::from_name(theme_name).unwrap_or(&theme::DEFAULT);
-            let app = app::App::new(db, header, theme);
+            let app = app::App::new(Some(db), header, theme);
             let terminal = ratatui::init();
             app::event::run(terminal, app).await
         }
-        None => Err(
-            "No active connection. Use \x1b[1mkon connect\x1b[0m to add one, or \x1b[1mkon set <name>\x1b[0m to select one."
-                .to_string(),
-        ),
+        None => {
+            let app = app::App::new_setup(config.clone(), theme);
+            let terminal = ratatui::init();
+            app::event::run(terminal, app).await
+        }
     }
 }

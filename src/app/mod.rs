@@ -27,7 +27,7 @@ pub struct App {
     pub active_panel: Panel,
 
     // Shared state
-    pub db: Database,
+    pub db: Option<Database>,
     pub conn_name: String,
     pub theme: &'static theme::Theme,
     pub config: Config,
@@ -84,10 +84,14 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(db: Database, conn_name: String, theme: &'static theme::Theme) -> Self {
+    pub fn new(db: Option<Database>, conn_name: String, theme: &'static theme::Theme) -> Self {
         let all_palette_entries = palette_entries();
         Self {
-            active_panel: Panel::Editor,
+            active_panel: if db.is_some() {
+                Panel::Editor
+            } else {
+                Panel::Connections
+            },
             db,
             conn_name,
             theme,
@@ -149,5 +153,17 @@ impl App {
 
     pub fn set_toast(&mut self, msg: &str) {
         self.toast = Some((msg.to_string(), Instant::now()));
+    }
+}
+
+/// Setup mode helpers
+impl App {
+    pub fn new_setup(config: Config, theme: &'static theme::Theme) -> Self {
+        let mut app = Self::new(None, String::new(), theme);
+        app.config = config;
+        app.active_panel = Panel::Connections;
+        app.focus = Focus::ConnectionForm;
+        app.conn_mode = ConnectionMode::Adding;
+        app
     }
 }

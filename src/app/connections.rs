@@ -1,12 +1,41 @@
-use crate::app::{App, ConnectionMode, Focus};
+use crate::app::{App, ConnectionMode, Focus, Panel};
 use crate::config::Connection;
+use crate::db;
 
 impl App {
-    pub fn activate_connection(&mut self, idx: usize) {
+    pub async fn connect_to_active(&mut self) -> Result<(), String> {
+        let (name, conn) = self.config.active().ok_or("No active connection")?;
+        let database = db::Database::connect(conn).await?;
+        let header = if conn.database == "mysql" {
+            name.to_string()
+        } else {
+            format!("{} ({})", name, conn.database)
+        };
+        self.db = Some(database);
+        self.conn_name = header;
+        self.active_panel = Panel::Editor;
+        self.focus = Focus::Input;
+        self.conn_mode = ConnectionMode::Browse;
+        if let Some(ref db) = self.db {
+            self.completion.fetch_schema(db).await;
+        }
+        Ok(())
+    }
+
+    pub async fn activate_connection(&mut self, idx: usize) {
         let list = self.config.list_connections();
         if let Some((name, _)) = list.get(idx) {
             let name_str = name.to_string();
-            if self.config.set_active(&name_str).is_ok() {
+            if self.config.set_active(&name_str).is_err() {
+                return;
+            }
+            if self.db.is_none() {
+                if let Err(e) = self.connect_to_active().await {
+                    self.set_toast(&format!("Connection failed: {}", e));
+                    return;
+                }
+                self.set_toast(&format!("Connected to '{}'", name_str));
+            } else {
                 self.set_toast(&format!("Active: {}", name_str));
             }
         }
@@ -39,7 +68,7 @@ impl App {
         }
     }
 
-    pub fn submit_connection_form(&mut self) {
+    pub async fn submit_connection_form(&mut self) {
         let port: u16 = match self.conn_form_port.parse() {
             Ok(p) => p,
             Err(_) => {
@@ -70,7 +99,6 @@ impl App {
                 }
             }
             ConnectionMode::Editing(_) => {
-                // Remove old, add updated
                 let old_key = self
                     .config
                     .connections
@@ -86,8 +114,20 @@ impl App {
             _ => {}
         }
 
-        self.conn_mode = ConnectionMode::Browse;
-        self.focus = Focus::ConnectionsList;
+        // If no DB yet (setup mode), connect to the new connection
+        if self.db.is_none() {
+            let _ = self.config.set_active(&name);
+            if let Err(e) = self.connect_to_active().await {
+                self.set_toast(&format!("Connection failed: {}", e));
+                self.conn_mode = ConnectionMode::Browse;
+                self.focus = Focus::ConnectionsList;
+                return;
+            }
+            self.set_toast(&format!("Connected to '{}'", name));
+        } else {
+            self.conn_mode = ConnectionMode::Browse;
+            self.focus = Focus::ConnectionsList;
+        }
     }
 
     pub fn cancel_connection_form(&mut self) {

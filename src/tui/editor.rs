@@ -13,7 +13,12 @@ pub fn render(frame: &mut Frame, content_area: Rect, app: &App) {
 
     let editor_area = if app.db_browser_visible {
         let panel_width = 22u16.min(content_area.width.saturating_sub(4));
-        let side_area = Rect::new(content_area.x, content_area.y, panel_width, content_area.height);
+        let side_area = Rect::new(
+            content_area.x,
+            content_area.y,
+            panel_width,
+            content_area.height,
+        );
         let right_area = Rect::new(
             content_area.x + panel_width,
             content_area.y,
