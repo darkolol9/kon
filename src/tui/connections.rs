@@ -1,5 +1,5 @@
 use ratatui::Frame;
-use ratatui::layout::Rect;
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
@@ -84,37 +84,55 @@ fn render_form(frame: &mut Frame, area: Rect, app: &App) {
     frame.render_widget(block, area);
 
     let fields = [
-        ("Name", &app.conn_form_name),
-        ("Host", &app.conn_form_host),
-        ("Port", &app.conn_form_port),
-        ("User", &app.conn_form_user),
-        ("Password", &app.conn_form_password),
-        ("Database", &app.conn_form_database),
+        ("Name", &app.conn_form_name, false),
+        ("Host", &app.conn_form_host, false),
+        ("Port", &app.conn_form_port, false),
+        ("User", &app.conn_form_user, false),
+        ("Password", &app.conn_form_password, true),
+        ("Database", &app.conn_form_database, false),
     ];
 
-    let mut lines = Vec::new();
-    for (i, (label, value)) in fields.iter().enumerate() {
-        let is_focused = i == app.conn_form_focus;
-        let prefix = if is_focused { "▶ " } else { "  " };
+    let constraints: [Constraint; 7] = [
+        Constraint::Length(2),
+        Constraint::Length(2),
+        Constraint::Length(2),
+        Constraint::Length(2),
+        Constraint::Length(2),
+        Constraint::Length(2),
+        Constraint::Fill(1),
+    ];
+    let rows = Layout::vertical(constraints).split(inner);
 
+    for (i, (label, value, is_password)) in fields.iter().enumerate() {
+        let is_focused = i == app.conn_form_focus;
+        let row = rows[i];
+
+        let [label_area, value_area] =
+            Layout::horizontal([Constraint::Length(14), Constraint::Fill(1)]).areas(row);
+
+        let prefix = if is_focused { "▶ " } else { "  " };
         let label_style = if is_focused {
             theme.sql_focused
         } else {
             Style::new().bold()
         };
+        frame.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                format!("{}{}:", prefix, label),
+                label_style,
+            ))),
+            label_area,
+        );
 
-        let value_display = if value.is_empty() && !is_focused {
-            " (empty) ".to_string()
+        let display = if *is_password && !value.is_empty() {
+            "·".repeat(value.len())
+        } else if value.is_empty() && !is_focused {
+            format!("<{}>", label.to_lowercase())
         } else {
-            let masked = *label == "Password" && !value.is_empty();
-            if masked {
-                "·".repeat(value.len())
-            } else {
-                value.to_string()
-            }
+            value.to_string()
         };
 
-        let value_style = if is_focused {
+        let inner_style = if is_focused {
             Style::new().bg(theme.input_bg).fg(theme.input_fg)
         } else if value.is_empty() {
             Style::new().dim()
@@ -122,14 +140,19 @@ fn render_form(frame: &mut Frame, area: Rect, app: &App) {
             Style::new()
         };
 
-        lines.push(Line::from(vec![
-            Span::raw(prefix),
-            Span::styled(format!("{:<10}", label), label_style),
-            Span::raw(" "),
-            Span::styled(value_display, value_style),
-        ]));
-    }
+        let border_style = if is_focused {
+            theme.border_primary
+        } else {
+            theme.border_secondary
+        };
 
-    let para = Paragraph::new(ratatui::text::Text::from(lines)).left_aligned();
-    frame.render_widget(para, inner);
+        frame.render_widget(
+            Paragraph::new(display).style(inner_style).block(
+                Block::default()
+                    .borders(Borders::BOTTOM)
+                    .border_style(border_style),
+            ),
+            value_area,
+        );
+    }
 }
