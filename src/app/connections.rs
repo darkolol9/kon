@@ -29,16 +29,36 @@ impl App {
             if self.config.set_active(&name_str).is_err() {
                 return;
             }
-            if self.db.is_none() {
-                if let Err(e) = self.connect_to_active().await {
-                    self.set_toast(&format!("Connection failed: {}", e));
-                    return;
-                }
-                self.set_toast(&format!("Connected to '{}'", name_str));
-            } else {
-                self.set_toast(&format!("Active: {}", name_str));
+            self.db = None;
+            if let Err(e) = self.connect_to_active().await {
+                self.set_toast(&format!("Connection failed: {}", e));
+                return;
             }
+            self.set_toast(&format!("Connected to '{}'", name_str));
         }
+    }
+
+    pub async fn test_connection_at(&self, idx: usize) -> Result<(), String> {
+        let list = self.config.list_connections();
+        let (_, conn) = list.get(idx).ok_or("No connection selected")?;
+        db::Database::connect(conn).await?;
+        Ok(())
+    }
+
+    pub async fn test_connection_from_form(&self) -> Result<(), String> {
+        let port: u16 = self
+            .conn_form_port
+            .parse()
+            .map_err(|_| "Invalid port number".to_string())?;
+        let conn = Connection {
+            host: self.conn_form_host.clone(),
+            port,
+            user: self.conn_form_user.clone(),
+            password: self.conn_form_password.clone(),
+            database: self.conn_form_database.clone(),
+        };
+        db::Database::connect(&conn).await?;
+        Ok(())
     }
 
     pub fn start_add_connection(&mut self) {

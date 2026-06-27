@@ -104,13 +104,24 @@ async fn cmd_repl(config: &mut Config) -> Result<(), String> {
     let theme = theme::from_name(theme_name).unwrap_or(&theme::DEFAULT);
     match active {
         Some((name, conn)) => {
-            let db = db::Database::connect(conn).await?;
-            let header = if conn.database == "mysql" {
-                name.to_string()
-            } else {
-                format!("{} ({})", name, conn.database)
+            let (db, header, toast) = match db::Database::connect(conn).await {
+                Ok(d) => {
+                    let h = if conn.database == "mysql" {
+                        name.to_string()
+                    } else {
+                        format!("{} ({})", name, conn.database)
+                    };
+                    (Some(d), h, None)
+                }
+                Err(e) => {
+                    let h = format!("{} (disconnected)", name);
+                    (None, h, Some(format!("Connection failed: {}", e)))
+                }
             };
-            let app = app::App::new(Some(db), header, theme);
+            let mut app = app::App::new(db, header, theme);
+            if let Some(msg) = toast {
+                app.set_toast(&msg);
+            }
             let terminal = ratatui::init();
             app::event::run(terminal, app).await
         }

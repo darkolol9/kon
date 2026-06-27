@@ -67,7 +67,7 @@ pub async fn run(mut terminal: DefaultTerminal, mut app: App) -> Result<(), Stri
                     app.focus = app.prev_focus;
                 }
                 Focus::ConnectionsList => handle_connections_key(&mut app, key.code).await,
-                Focus::ConnectionForm => handle_connection_form_key(&mut app, key.code).await,
+                Focus::ConnectionForm => handle_connection_form_key(&mut app, key.code, ctrl).await,
                 Focus::SettingsList => handle_settings_key(&mut app, key.code),
             }
         }
@@ -422,6 +422,14 @@ async fn handle_connections_key(app: &mut App, code: KeyCode) {
                 app.set_toast("Delete? y/n");
             }
         }
+        KeyCode::Char('t') | KeyCode::Char('T') => {
+            if !app.config.connections.is_empty() {
+                match app.test_connection_at(app.connection_selection).await {
+                    Ok(_) => app.set_toast("Connection successful!"),
+                    Err(e) => app.set_toast(&format!("Connection failed: {}", e)),
+                }
+            }
+        }
         KeyCode::Esc => {
             app.active_panel = Panel::Editor;
             app.focus = Focus::Input;
@@ -430,12 +438,16 @@ async fn handle_connections_key(app: &mut App, code: KeyCode) {
     }
 }
 
-async fn handle_connection_form_key(app: &mut App, code: KeyCode) {
+async fn handle_connection_form_key(app: &mut App, code: KeyCode, ctrl: bool) {
     match code {
         KeyCode::Tab => app.next_connection_form_field(),
         KeyCode::BackTab => app.prev_connection_form_field(),
         KeyCode::Enter => app.submit_connection_form().await,
         KeyCode::Esc => app.cancel_connection_form(),
+        KeyCode::Char(c) if ctrl && c == 't' => match app.test_connection_from_form().await {
+            Ok(_) => app.set_toast("Connection successful!"),
+            Err(e) => app.set_toast(&format!("Connection failed: {}", e)),
+        },
         KeyCode::Char(c) => app.connection_form_insert(c),
         KeyCode::Backspace => app.connection_form_delete(),
         _ => {}

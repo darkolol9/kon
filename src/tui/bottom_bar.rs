@@ -93,6 +93,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
                         shortcut("n New", theme),
                         shortcut("e Edit", theme),
                         shortcut("d Delete", theme),
+                        shortcut("t Test", theme),
                         sep(),
                         shortcut("⎋ Back", theme),
                         sep(),
@@ -105,6 +106,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
             (Panel::Connections, Focus::ConnectionForm) => vec![
                 shortcut("⇥ Next", theme),
                 shortcut("↵ Save", theme),
+                shortcut("⌃T Test", theme),
                 shortcut("⎋ Cancel", theme),
                 sep(),
                 shortcut("F1 Ed", theme),
