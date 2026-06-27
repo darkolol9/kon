@@ -2,7 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
+use ratatui::widgets::{Block, Borders, Clear, List, ListItem};
 
 use crate::app::App;
 
@@ -13,17 +13,14 @@ pub fn render(frame: &mut Frame, input_area: Rect, app: &App) {
         return;
     }
 
-    let max_visible = 8.min(candidates.len());
+    let max_visible = 10.min(candidates.len());
     let popup_height = max_visible as u16 + 2;
-    let popup_width = 48;
+    let popup_width = (input_area.width as f64 * 0.45).clamp(32.0, 56.0) as u16;
 
-    let popup_x = input_area.x + 6;
+    let popup_x = input_area.x + 4;
     let popup_y = input_area.y.saturating_sub(popup_height + 1);
 
-    let available_width = input_area.width.saturating_sub(6);
-    let actual_width = popup_width.min(available_width);
-
-    let popup_area = Rect::new(popup_x, popup_y, actual_width, popup_height);
+    let popup_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
     let items: Vec<ListItem> = candidates
         .iter()
@@ -52,8 +49,8 @@ pub fn render(frame: &mut Frame, input_area: Rect, app: &App) {
             let selected = i == app.completion.selection();
 
             let display =
-                if selected && cand.display.len() + suffix.len() + 3 > actual_width as usize {
-                    let max_d = actual_width as usize - suffix.len() - 4;
+                if selected && cand.display.len() + suffix.len() + 3 > popup_width as usize - 5 {
+                    let max_d = (popup_width as usize).saturating_sub(suffix.len() + 8);
                     if max_d > 3 {
                         let mut t: String =
                             cand.display.chars().take(max_d.saturating_sub(3)).collect();
@@ -82,7 +79,7 @@ pub fn render(frame: &mut Frame, input_area: Rect, app: &App) {
         .collect();
 
     let title = format!(
-        " Completions ({}/{}) ",
+        " {} / {} ",
         app.completion.selection() + 1,
         candidates.len()
     );
@@ -96,9 +93,6 @@ pub fn render(frame: &mut Frame, input_area: Rect, app: &App) {
         )
         .highlight_style(theme.completion_selected);
 
-    frame.render_widget(
-        Paragraph::new("").style(Style::new().bg(theme.bg)),
-        popup_area,
-    );
+    frame.render_widget(Clear, popup_area);
     frame.render_widget(list, popup_area);
 }

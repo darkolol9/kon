@@ -20,6 +20,7 @@ pub struct QueryBlock {
     pub result: Option<QueryResult>,
     pub error: Option<String>,
     pub view_mode: ViewMode,
+    pub block_row_scroll: usize,
 }
 
 pub struct App {
@@ -43,8 +44,6 @@ pub struct App {
     pub history: Vec<String>,
     pub history_pos: Option<usize>,
     pub query_blocks: Vec<QueryBlock>,
-    pub view_modes: Vec<ViewMode>,
-    pub block_row_scroll: Vec<usize>,
     pub scroll: usize,
     pub scroll_x: usize,
     pub active_block: usize,
@@ -61,6 +60,7 @@ pub struct App {
     pub command_palette_selection: usize,
     pub all_palette_entries: Vec<PaletteEntry>,
     pub help_overlay_active: bool,
+    pub spinner_tick: u8,
     pub db_browser_visible: bool,
     pub db_browser_databases: Vec<String>,
     pub db_browser_selection: usize,
@@ -108,8 +108,6 @@ impl App {
             history: Vec::new(),
             history_pos: None,
             query_blocks: Vec::with_capacity(64),
-            view_modes: Vec::with_capacity(64),
-            block_row_scroll: Vec::with_capacity(64),
             scroll: 0,
             scroll_x: 0,
             active_block: 0,
@@ -126,6 +124,7 @@ impl App {
             command_palette_selection: 0,
             all_palette_entries,
             help_overlay_active: false,
+            spinner_tick: 0,
             db_browser_visible: false,
             db_browser_databases: Vec::new(),
             db_browser_selection: 0,

@@ -85,14 +85,14 @@ impl App {
     }
 
     pub fn scroll_results_up(&mut self, page_size: usize) {
-        if let Some(offset) = self.block_row_scroll.get_mut(self.active_block) {
-            *offset = offset.saturating_sub(page_size);
+        if let Some(block) = self.query_blocks.get_mut(self.active_block) {
+            block.block_row_scroll = block.block_row_scroll.saturating_sub(page_size);
         }
     }
 
     pub fn scroll_results_down(&mut self, page_size: usize) {
-        if let Some(offset) = self.block_row_scroll.get_mut(self.active_block) {
-            *offset = offset.saturating_add(page_size);
+        if let Some(block) = self.query_blocks.get_mut(self.active_block) {
+            block.block_row_scroll = block.block_row_scroll.saturating_add(page_size);
         }
     }
 

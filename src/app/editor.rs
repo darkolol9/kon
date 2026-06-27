@@ -24,9 +24,8 @@ impl App {
     }
 
     pub fn toggle_view_mode(&mut self) {
-        if self.active_block < self.view_modes.len() {
-            let mode = self.view_modes[self.active_block];
-            self.view_modes[self.active_block] = match mode {
+        if let Some(block) = self.query_blocks.get_mut(self.active_block) {
+            block.view_mode = match block.view_mode {
                 ViewMode::Table => ViewMode::Vertical,
                 ViewMode::Vertical => ViewMode::Table,
             };
@@ -35,7 +34,10 @@ impl App {
 
     #[allow(dead_code)]
     pub fn block_view_mode(&self, idx: usize) -> ViewMode {
-        self.view_modes.get(idx).copied().unwrap_or(ViewMode::Table)
+        self.query_blocks
+            .get(idx)
+            .map(|b| b.view_mode)
+            .unwrap_or(ViewMode::Table)
     }
 }
 
@@ -61,9 +63,8 @@ impl App {
             result: None,
             error: None,
             view_mode,
+            block_row_scroll: 0,
         });
-        self.view_modes.push(view_mode);
-        self.block_row_scroll.push(0);
         self.active_block = idx;
         self.scroll = 0;
         idx
@@ -95,7 +96,7 @@ impl App {
         self.input.clear();
         self.cursor = 0;
 
-        let block = QueryBlock {
+        self.query_blocks.push(QueryBlock {
             sql: sql.clone(),
             result: None,
             error: None,
@@ -104,11 +105,8 @@ impl App {
             } else {
                 ViewMode::Table
             },
-        };
-        let view_mode = block.view_mode;
-        self.query_blocks.push(block);
-        self.view_modes.push(view_mode);
-        self.block_row_scroll.push(0);
+            block_row_scroll: 0,
+        });
         let idx = self.query_blocks.len() - 1;
         self.active_block = idx;
         self.state = AppState::Executing;
@@ -192,8 +190,6 @@ impl App {
 
     fn cmd_clear(&mut self) {
         self.query_blocks.clear();
-        self.view_modes.clear();
-        self.block_row_scroll.clear();
         self.active_block = 0;
         self.scroll = 0;
     }

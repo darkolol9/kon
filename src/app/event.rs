@@ -22,6 +22,8 @@ pub async fn run(mut terminal: DefaultTerminal, mut app: App) -> Result<(), Stri
             app.toast = None;
         }
 
+        app.spinner_tick = app.spinner_tick.wrapping_add(1);
+
         terminal
             .draw(|frame| crate::tui::render(frame, &app))
             .map_err(|e| format!("Render failed: {e}"))?;

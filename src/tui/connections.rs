@@ -48,9 +48,9 @@ fn render_list(frame: &mut Frame, area: Rect, app: &App) {
             );
 
             let style = if is_active {
-                Style::new().bold()
+                Style::new().fg(theme.input_fg).bold()
             } else {
-                Style::new()
+                Style::new().fg(theme.input_fg)
             };
 
             let item_style = if is_selected {
@@ -76,18 +76,14 @@ fn render_wizard(frame: &mut Frame, area: Rect, app: &App) {
         _ => " Connection ",
     };
 
-    let popup_width = 52u16.min(area.width.saturating_sub(4));
-    let popup_height = 16u16.min(area.height.saturating_sub(2));
+    let popup_width = (area.width as f64 * 0.5).clamp(48.0, 60.0) as u16;
+    let popup_height = (area.height as f64 * 0.5).clamp(14.0, 18.0) as u16;
 
     let popup_x = area.x + (area.width.saturating_sub(popup_width)) / 2;
     let popup_y = area.y + (area.height.saturating_sub(popup_height)) / 2;
     let popup_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
     frame.render_widget(Clear, popup_area);
-    frame.render_widget(
-        Paragraph::new("").style(Style::new().bg(theme.bg)),
-        popup_area,
-    );
 
     let block = Block::bordered()
         .title(title)
@@ -121,23 +117,52 @@ fn render_wizard(frame: &mut Frame, area: Rect, app: &App) {
 
 fn render_progress(frame: &mut Frame, area: Rect, app: &App, theme: &crate::theme::Theme) {
     let steps = ["Connection Info", "Credentials", "Database"];
-    let mut spans = Vec::new();
+    let step = app.conn_wizard_step;
+    let total = steps.len();
+    let bar_width = area.width.saturating_sub(2) as usize;
+    let segment = bar_width / total;
+
+    let mut spans = vec![Span::raw(" ")];
 
     for (i, name) in steps.iter().enumerate() {
-        if i > 0 {
-            spans.push(Span::raw("  "));
-        }
-        let filled = i <= app.conn_wizard_step;
-        let is_current = i == app.conn_wizard_step;
-        let dot = if filled { "●" } else { "○" };
+        let is_done = i < step;
+        let is_current = i == step;
+        let fill = if is_done || is_current { "━" } else { "─" };
         let style = if is_current {
             theme.sql_focused
-        } else if filled {
+        } else if is_done {
             theme.summary
         } else {
             Style::new().dim()
         };
-        spans.push(Span::styled(format!(" {} {} ", dot, name), style));
+
+        if segment > 2 {
+            let label = if segment > name.len() + 2usize {
+                format!(" {} ", name)
+            } else {
+                String::new()
+            };
+            spans.push(Span::styled(
+                fill.repeat(segment.saturating_sub(label.len())),
+                style,
+            ));
+            if !label.is_empty() {
+                spans.push(Span::styled(label, style));
+            }
+        } else {
+            spans.push(Span::styled(fill.repeat(2), style));
+        }
+
+        if i < total - 1 {
+            spans.push(Span::styled(
+                " ● ",
+                if is_current || is_done {
+                    style
+                } else {
+                    Style::new().dim()
+                },
+            ));
+        }
     }
 
     frame.render_widget(Paragraph::new(Line::from(spans)).left_aligned(), area);
@@ -257,47 +282,48 @@ fn render_actions(frame: &mut Frame, area: Rect, app: &App, theme: &crate::theme
 
     // Back button (not on first step)
     if step > 0 {
-        if !spans.is_empty() {
-            spans.push(Span::raw("  "));
-        }
         spans.push(Span::styled(
-            "[< Back]",
-            Style::new().fg(theme.bottom_bar_fg),
+            " < Back ",
+            Style::new().fg(theme.bottom_bar_fg).bg(theme.input_bg),
         ));
     }
 
     // Next / Save
-    if !spans.is_empty() {
-        spans.push(Span::raw("  "));
-    }
     if step < 2 {
-        spans.push(Span::styled("[Next >]", theme.sql_focused));
+        spans.push(Span::styled(
+            " Next > ",
+            Style::new().fg(theme.bg).bg(theme.completion_kw),
+        ));
     } else {
         spans.push(Span::styled(
-            "[Save]",
+            " Save ",
             Style::new()
-                .bold()
-                .fg(theme.summary.fg.unwrap_or(theme.bottom_bar_fg)),
+                .fg(theme.bg)
+                .bg(theme.summary.fg.unwrap_or(theme.completion_kw)),
         ));
     }
 
-    // Cancel
+    // Spacer
     spans.push(Span::raw("  "));
+
+    // Cancel
     spans.push(Span::styled(
-        "[Cancel]",
-        Style::new().fg(theme.bottom_bar_fg),
+        " Cancel ",
+        Style::new().fg(theme.bottom_bar_fg).bg(theme.input_bg),
     ));
 
     // Test
-    spans.push(Span::raw("  "));
-    spans.push(Span::styled("[Test]", Style::new().fg(theme.bottom_bar_fg)));
+    spans.push(Span::styled(
+        " Test ",
+        Style::new().fg(theme.bottom_bar_fg).bg(theme.input_bg),
+    ));
 
     // Key hints
     let next_label = if step < 2 { "↵ Next" } else { "↵ Save" };
-    let hint_text = format!("  ⇥ Tab {} ⎋ Cancel", next_label);
-    spans.push(Span::raw(hint_text));
+    let hint_text = format!("   ⇥ Tab {}   ⌃T Test   ⌃E Submit   ⎋ Cancel", next_label);
+    spans.push(Span::styled(hint_text, Style::new().dim()));
 
-    frame.render_widget(Paragraph::new(Line::from(spans)).right_aligned(), area);
+    frame.render_widget(Paragraph::new(Line::from(spans)).left_aligned(), area);
 }
 
 fn wizard_hint(step: usize, focus: usize) -> &'static str {

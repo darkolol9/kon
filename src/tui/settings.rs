@@ -29,9 +29,9 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
             let style = if selected {
                 app.theme.picker_selected
             } else if is_current {
-                Style::new().bold()
+                Style::new().fg(app.theme.input_fg).bold()
             } else {
-                Style::new()
+                Style::new().fg(app.theme.input_fg)
             };
 
             let t = theme::from_name(name).unwrap_or(app.theme);

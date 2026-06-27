@@ -64,15 +64,34 @@ pub fn render(frame: &mut Frame, app: &App) {
 
 fn render_toast(frame: &mut Frame, content_area: Rect, app: &App, msg: &str) {
     let theme = app.theme;
-    let width = (msg.len() as u16 + 4).min(content_area.width.saturating_sub(4));
+    let icon = toast_icon(msg);
+    let display = format!(" {} {} ", icon, msg);
+    let width = (display.len() as u16 + 2).min(content_area.width.saturating_sub(4));
     let x = content_area.x + content_area.width.saturating_sub(width) - 1;
     let y = content_area.y + 1;
     let area = Rect::new(x, y, width, 1);
 
     frame.render_widget(Clear, area);
     frame.render_widget(
-        Paragraph::new(Line::from(format!(" {} ", msg)))
+        Paragraph::new(Line::from(display))
             .style(Style::new().bg(theme.toast_bg).fg(theme.toast_fg)),
         area,
     );
+}
+
+fn toast_icon(msg: &str) -> &'static str {
+    let lower = msg.to_lowercase();
+    if lower.contains("failed") || lower.contains("error") {
+        "✖"
+    } else if lower.contains("successful") {
+        "✔"
+    } else if lower.contains("refreshed") {
+        "↻"
+    } else if lower.contains("switched") {
+        "◆"
+    } else if lower.contains("no database") {
+        "⚠"
+    } else {
+        "·"
+    }
 }

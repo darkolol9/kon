@@ -14,9 +14,27 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     let conn_tab = panel_tab(" Connections ", Panel::Connections, app.active_panel, theme);
     let settings_tab = panel_tab(" Settings ", Panel::Settings, app.active_panel, theme);
 
-    let conn_name = format!(" kon · {} ", app.conn_name);
+    // Status dot
+    let status = if app.db.is_some() {
+        Span::styled(
+            " ● ",
+            Style::new().fg(theme.summary.fg.unwrap_or(theme.bottom_bar_fg)),
+        )
+    } else {
+        Span::styled(" ○ ", Style::new().dim())
+    };
+
+    let right_info = format!(" {} ", app.conn_name);
 
     let line = Line::from(vec![
+        Span::styled(
+            " kon ",
+            Style::new()
+                .fg(theme.top_bar_active.fg.unwrap_or(theme.bg))
+                .bg(theme.top_bar_active.bg.unwrap_or(theme.top_bar_bg))
+                .bold(),
+        ),
+        Span::raw(" "),
         editor_tab,
         Span::raw(" "),
         conn_tab,
@@ -25,11 +43,12 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
         Span::raw(
             " ".repeat(
                 area.width
-                    .saturating_sub(35)
-                    .saturating_sub(conn_name.len() as u16) as usize,
+                    .saturating_sub(45)
+                    .saturating_sub(right_info.len() as u16) as usize,
             ),
         ),
-        Span::styled(conn_name, Style::new().fg(theme.input_fg).dim()),
+        status,
+        Span::styled(right_info, Style::new().fg(theme.input_fg).dim()),
     ]);
 
     let para = Paragraph::new(line)
