@@ -1,11 +1,12 @@
 use ratatui::Frame;
-use ratatui::layout::Rect;
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, List, ListItem, Paragraph};
 
 use crate::app::App;
 use crate::theme;
+use crate::tui::theme_preview;
 
 pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     let theme_names = theme::theme_names();
@@ -17,6 +18,36 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
+    if inner.width < 60 || inner.height < 8 {
+        // Too narrow — render list only
+        render_list(frame, inner, app, &theme_names);
+        return;
+    }
+
+    let [list_area, preview_area] =
+        Layout::horizontal([Constraint::Length(34), Constraint::Fill(1)])
+            .spacing(1)
+            .areas(inner);
+
+    render_list(frame, list_area, app, &theme_names);
+
+    // Preview the hovered theme
+    if let Some(preview_theme) = theme::ALL_THEMES.get(app.settings_selection).copied() {
+        let preview_block = Block::bordered()
+            .title(" Preview ")
+            .border_style(preview_theme.border_secondary);
+        let p_inner = preview_block.inner(preview_area);
+        frame.render_widget(preview_block, preview_area);
+        theme_preview::render_preview(frame, p_inner, preview_theme);
+    } else {
+        let para = Paragraph::new(" (select a theme) ")
+            .style(Style::new().dim())
+            .left_aligned();
+        frame.render_widget(para, preview_area);
+    }
+}
+
+fn render_list(frame: &mut Frame, area: Rect, app: &App, theme_names: &[&'static str]) {
     let items: Vec<ListItem> = theme_names
         .iter()
         .enumerate()
@@ -51,10 +82,10 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
         let para = Paragraph::new(" (no themes available) ")
             .style(Style::new().dim())
             .left_aligned();
-        frame.render_widget(para, inner);
+        frame.render_widget(para, area);
         return;
     }
 
     let list = List::new(items).highlight_style(app.theme.picker_selected);
-    frame.render_widget(list, inner);
+    frame.render_widget(list, area);
 }

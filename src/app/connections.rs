@@ -38,6 +38,19 @@ impl App {
         self.active_panel = Panel::Editor;
         self.focus = Focus::Input;
         self.conn_mode = ConnectionMode::Browse;
+
+        self.query_blocks.clear();
+        self.active_block = 0;
+        self.scroll = 0;
+        self.scroll_x = 0;
+        self.input.clear();
+        self.cursor = 0;
+        self.db_browser_databases.clear();
+        self.db_browser_selection = 0;
+        self.db_browser_error = None;
+        self.completion.tables.clear();
+        self.completion.columns.clear();
+
         if let Some(ref db) = self.db {
             self.completion.fetch_schema(db).await;
         }

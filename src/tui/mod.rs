@@ -6,6 +6,8 @@ pub mod format;
 pub mod layout;
 pub mod overlays;
 pub mod settings;
+pub mod theme_preview;
+
 pub mod syntax;
 pub mod table;
 pub mod top_bar;
