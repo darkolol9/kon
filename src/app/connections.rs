@@ -3,6 +3,28 @@ use crate::config::Connection;
 use crate::db;
 
 impl App {
+    pub fn wizard_fields_in_step(step: usize) -> usize {
+        match step {
+            0 => 3,
+            1 => 2,
+            2 => 1,
+            _ => 0,
+        }
+    }
+
+    pub fn wizard_absolute_field(step: usize, focus: usize) -> usize {
+        match step {
+            0 => focus,
+            1 => 3 + focus,
+            2 => 5,
+            _ => 0,
+        }
+    }
+
+    pub fn wizard_absolute(&self) -> usize {
+        Self::wizard_absolute_field(self.conn_wizard_step, self.conn_form_focus)
+    }
+
     pub async fn connect_to_active(&mut self) -> Result<(), String> {
         let (name, conn) = self.config.active().ok_or("No active connection")?;
         let database = db::Database::connect(conn).await?;
@@ -70,6 +92,8 @@ impl App {
         self.conn_form_password.clear();
         self.conn_form_database = String::from("mysql");
         self.conn_form_focus = 0;
+        self.conn_wizard_step = 0;
+        self.cursor = 0;
         self.focus = Focus::ConnectionForm;
     }
 
@@ -84,6 +108,8 @@ impl App {
             self.conn_form_password = conn.password.clone();
             self.conn_form_database = conn.database.clone();
             self.conn_form_focus = 0;
+            self.conn_wizard_step = 0;
+            self.cursor = name.len();
             self.focus = Focus::ConnectionForm;
         }
     }
@@ -134,7 +160,6 @@ impl App {
             _ => {}
         }
 
-        // If no DB yet (setup mode), connect to the new connection
         if self.db.is_none() {
             let _ = self.config.set_active(&name);
             if let Err(e) = self.connect_to_active().await {
@@ -172,20 +197,26 @@ impl App {
         }
     }
 
-    pub fn next_connection_form_field(&mut self) {
-        self.conn_form_focus = (self.conn_form_focus + 1) % 6;
+    pub fn next_wizard_step(&mut self) {
+        if self.conn_wizard_step < 2 {
+            self.conn_wizard_step += 1;
+            self.conn_form_focus = 0;
+            self.cursor = 0;
+        }
     }
 
-    pub fn prev_connection_form_field(&mut self) {
-        self.conn_form_focus = if self.conn_form_focus == 0 {
-            5
-        } else {
-            self.conn_form_focus - 1
-        };
+    pub fn prev_wizard_step(&mut self) {
+        if self.conn_wizard_step > 0 {
+            self.conn_wizard_step -= 1;
+            let max = Self::wizard_fields_in_step(self.conn_wizard_step);
+            self.conn_form_focus = max.saturating_sub(1);
+            self.cursor = 0;
+        }
     }
 
     pub fn connection_form_insert(&mut self, c: char) {
-        let field = match self.conn_form_focus {
+        let abs = self.wizard_absolute();
+        let field = match abs {
             0 => &mut self.conn_form_name,
             1 => &mut self.conn_form_host,
             2 => &mut self.conn_form_port,
@@ -194,11 +225,13 @@ impl App {
             5 => &mut self.conn_form_database,
             _ => return,
         };
-        field.insert(self.cursor, c);
+        field.push(c);
+        self.cursor = field.len();
     }
 
     pub fn connection_form_delete(&mut self) {
-        let field = match self.conn_form_focus {
+        let abs = self.wizard_absolute();
+        let field = match abs {
             0 => &mut self.conn_form_name,
             1 => &mut self.conn_form_host,
             2 => &mut self.conn_form_port,
@@ -209,6 +242,7 @@ impl App {
         };
         if !field.is_empty() {
             field.pop();
+            self.cursor = field.len();
         }
     }
 }

@@ -77,6 +77,7 @@ pub struct App {
     pub conn_form_password: String,
     pub conn_form_database: String,
     pub conn_form_focus: usize,
+    pub conn_wizard_step: usize,
     pub confirm_delete: Option<usize>,
 
     // Settings panel
@@ -140,6 +141,7 @@ impl App {
             conn_form_password: String::new(),
             conn_form_database: String::from("mysql"),
             conn_form_focus: 0,
+            conn_wizard_step: 0,
             confirm_delete: None,
 
             settings_selection: 0,

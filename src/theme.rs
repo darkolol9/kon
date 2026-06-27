@@ -53,6 +53,8 @@ pub struct Theme {
     pub top_bar_inactive: Style,
     pub bottom_bar_bg: Color,
     pub bottom_bar_fg: Color,
+    pub toast_bg: Color,
+    pub toast_fg: Color,
 }
 
 impl Theme {
@@ -157,6 +159,8 @@ pub static DEFAULT: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::Rgb(16, 16, 16),
     bottom_bar_bg: Color::Rgb(22, 22, 22),
     bottom_bar_fg: Color::Rgb(200, 200, 200),
+    toast_bg: Color::Rgb(40, 40, 40),
+    toast_fg: Color::White,
 });
 
 // ── Dracula ──
@@ -242,6 +246,8 @@ pub static DRACULA: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::Rgb(40, 42, 54),
     bottom_bar_bg: Color::Rgb(33, 34, 44),
     bottom_bar_fg: Color::Rgb(248, 248, 242),
+    toast_bg: Color::Rgb(68, 71, 90),
+    toast_fg: Color::Rgb(248, 248, 242),
 });
 
 // ── Nord ──
@@ -327,6 +333,8 @@ pub static NORD: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::Rgb(46, 52, 64),
     bottom_bar_bg: Color::Rgb(56, 62, 74),
     bottom_bar_fg: Color::Rgb(236, 239, 244),
+    toast_bg: Color::Rgb(59, 66, 82),
+    toast_fg: Color::Rgb(236, 239, 244),
 });
 
 // ── Monokai ──
@@ -412,6 +420,8 @@ pub static MONOKAI: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::Rgb(39, 40, 34),
     bottom_bar_bg: Color::Rgb(33, 34, 28),
     bottom_bar_fg: Color::Rgb(248, 248, 242),
+    toast_bg: Color::Rgb(50, 51, 42),
+    toast_fg: Color::Rgb(248, 248, 242),
 });
 
 // ── Light ──
@@ -477,6 +487,8 @@ pub static LIGHT: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::White,
     bottom_bar_bg: Color::Rgb(240, 240, 240),
     bottom_bar_fg: Color::Rgb(60, 60, 60),
+    toast_bg: Color::Rgb(230, 230, 230),
+    toast_fg: Color::Rgb(40, 40, 40),
 });
 
 // ── Tokyo Night ──
@@ -562,6 +574,8 @@ pub static TOKYO_NIGHT: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::Rgb(26, 27, 38),
     bottom_bar_bg: Color::Rgb(36, 37, 48),
     bottom_bar_fg: Color::Rgb(169, 177, 214),
+    toast_bg: Color::Rgb(36, 38, 59),
+    toast_fg: Color::Rgb(169, 177, 214),
 });
 
 // ── Catppuccin ──
@@ -647,6 +661,8 @@ pub static CATPPUCCIN: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::Rgb(30, 30, 46),
     bottom_bar_bg: Color::Rgb(24, 24, 37),
     bottom_bar_fg: Color::Rgb(205, 214, 244),
+    toast_bg: Color::Rgb(49, 50, 68),
+    toast_fg: Color::Rgb(205, 214, 244),
 });
 
 // ── Gruvbox Dark ──
@@ -732,6 +748,8 @@ pub static GRUVBOX: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::Rgb(40, 40, 40),
     bottom_bar_bg: Color::Rgb(28, 28, 28),
     bottom_bar_fg: Color::Rgb(235, 219, 178),
+    toast_bg: Color::Rgb(50, 50, 50),
+    toast_fg: Color::Rgb(235, 219, 178),
 });
 
 // ── Solarized Dark ──
@@ -817,6 +835,8 @@ pub static SOLARIZED_DARK: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::Rgb(0, 43, 54),
     bottom_bar_bg: Color::Rgb(7, 54, 66),
     bottom_bar_fg: Color::Rgb(147, 161, 161),
+    toast_bg: Color::Rgb(7, 54, 66),
+    toast_fg: Color::Rgb(147, 161, 161),
 });
 
 // ── One Dark ──
@@ -902,6 +922,8 @@ pub static ONE_DARK: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::Rgb(30, 33, 39),
     bottom_bar_bg: Color::Rgb(22, 24, 28),
     bottom_bar_fg: Color::Rgb(171, 178, 191),
+    toast_bg: Color::Rgb(40, 44, 52),
+    toast_fg: Color::Rgb(171, 178, 191),
 });
 
 // ── Rose Pine ──
@@ -987,6 +1009,8 @@ pub static ROSE_PINE: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::Rgb(31, 29, 46),
     bottom_bar_bg: Color::Rgb(25, 23, 36),
     bottom_bar_fg: Color::Rgb(224, 222, 244),
+    toast_bg: Color::Rgb(42, 39, 63),
+    toast_fg: Color::Rgb(224, 222, 244),
 });
 
 // ── Everforest ──
@@ -1072,6 +1096,8 @@ pub static EVERFOREST: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::Rgb(45, 53, 59),
     bottom_bar_bg: Color::Rgb(31, 37, 42),
     bottom_bar_fg: Color::Rgb(211, 198, 170),
+    toast_bg: Color::Rgb(56, 64, 70),
+    toast_fg: Color::Rgb(211, 198, 170),
 });
 
 // ── Ayu Dark ──
@@ -1157,4 +1183,6 @@ pub static AYU_DARK: LazyLock<Theme> = LazyLock::new(|| Theme {
     bg: Color::Rgb(14, 18, 24),
     bottom_bar_bg: Color::Rgb(10, 13, 18),
     bottom_bar_fg: Color::Rgb(191, 199, 213),
+    toast_bg: Color::Rgb(28, 34, 44),
+    toast_fg: Color::Rgb(191, 199, 213),
 });

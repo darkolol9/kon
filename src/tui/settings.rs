@@ -2,7 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
+use ratatui::widgets::{Block, List, ListItem, Paragraph};
 
 use crate::app::App;
 use crate::theme;
@@ -10,8 +10,7 @@ use crate::theme;
 pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     let theme_names = theme::theme_names();
 
-    let block = Block::default()
-        .borders(Borders::ALL)
+    let block = Block::bordered()
         .title(" Settings — Theme ")
         .border_style(app.theme.border_primary);
 

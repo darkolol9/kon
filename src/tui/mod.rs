@@ -15,7 +15,7 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::Line;
-use ratatui::widgets::Paragraph;
+use ratatui::widgets::{Clear, Paragraph};
 
 use crate::app::{App, Panel};
 use layout::AppLayout;
@@ -47,7 +47,7 @@ pub fn render(frame: &mut Frame, app: &App) {
 
     // Render toast notification
     if let Some((msg, _instant)) = &app.toast {
-        render_toast(frame, layout.content, msg);
+        render_toast(frame, layout.content, app, msg);
     }
 
     // Global overlays (drawn last, on top)
@@ -62,14 +62,17 @@ pub fn render(frame: &mut Frame, app: &App) {
     bottom_bar::render(frame, layout.bottom_bar, app);
 }
 
-fn render_toast(frame: &mut Frame, content_area: Rect, msg: &str) {
+fn render_toast(frame: &mut Frame, content_area: Rect, app: &App, msg: &str) {
+    let theme = app.theme;
     let width = (msg.len() as u16 + 4).min(content_area.width.saturating_sub(4));
     let x = content_area.x + content_area.width.saturating_sub(width) - 1;
     let y = content_area.y + 1;
     let area = Rect::new(x, y, width, 1);
 
+    frame.render_widget(Clear, area);
     frame.render_widget(
-        Paragraph::new(Line::from(format!(" {} ", msg))).style(Style::new()),
+        Paragraph::new(Line::from(format!(" {} ", msg)))
+            .style(Style::new().bg(theme.toast_bg).fg(theme.toast_fg)),
         area,
     );
 }

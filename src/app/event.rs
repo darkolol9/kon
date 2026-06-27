@@ -419,7 +419,6 @@ async fn handle_connections_key(app: &mut App, code: KeyCode) {
         KeyCode::Char('d') | KeyCode::Char('D') => {
             if !app.config.connections.is_empty() {
                 app.confirm_delete = Some(app.connection_selection);
-                app.set_toast("Delete? y/n");
             }
         }
         KeyCode::Char('t') | KeyCode::Char('T') => {
@@ -440,11 +439,38 @@ async fn handle_connections_key(app: &mut App, code: KeyCode) {
 
 async fn handle_connection_form_key(app: &mut App, code: KeyCode, ctrl: bool) {
     match code {
-        KeyCode::Tab => app.next_connection_form_field(),
-        KeyCode::BackTab => app.prev_connection_form_field(),
-        KeyCode::Enter => app.submit_connection_form().await,
+        KeyCode::Tab => {
+            let max = App::wizard_fields_in_step(app.conn_wizard_step);
+            let next_focus = (app.conn_form_focus + 1) % max;
+            if next_focus == 0 {
+                app.next_wizard_step();
+            } else {
+                app.conn_form_focus = next_focus;
+            }
+        }
+        KeyCode::BackTab => {
+            if app.conn_form_focus == 0 {
+                app.prev_wizard_step();
+            } else {
+                app.conn_form_focus -= 1;
+            }
+        }
+        KeyCode::Enter => {
+            let max = App::wizard_fields_in_step(app.conn_wizard_step);
+            if app.conn_wizard_step == 2 && app.conn_form_focus == max.saturating_sub(1) {
+                app.submit_connection_form().await;
+            } else {
+                let next_focus = (app.conn_form_focus + 1) % max;
+                if next_focus == 0 {
+                    app.next_wizard_step();
+                } else {
+                    app.conn_form_focus = next_focus;
+                }
+            }
+        }
         KeyCode::Esc => app.cancel_connection_form(),
-        KeyCode::Char(c) if ctrl && c == 't' => match app.test_connection_from_form().await {
+        KeyCode::Char('e') if ctrl => app.submit_connection_form().await,
+        KeyCode::Char('t') if ctrl => match app.test_connection_from_form().await {
             Ok(_) => app.set_toast("Connection successful!"),
             Err(e) => app.set_toast(&format!("Connection failed: {}", e)),
         },

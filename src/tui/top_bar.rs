@@ -29,7 +29,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
                     .saturating_sub(conn_name.len() as u16) as usize,
             ),
         ),
-        Span::styled(conn_name, Style::new().fg(theme.bottom_bar_fg).dim()),
+        Span::styled(conn_name, Style::new().fg(theme.input_fg).dim()),
     ]);
 
     let para = Paragraph::new(line)

@@ -2,7 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
+use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph};
 
 use crate::app::App;
 
@@ -17,20 +17,20 @@ pub fn render_command_palette(frame: &mut Frame, area: Rect, app: &App) {
 
     let max_visible = 12.min(candidates.len());
     let popup_height = max_visible as u16 + 5;
-    let popup_width = 56;
+    let popup_width = 56.min(area.width.saturating_sub(4));
 
     let popup_x = area.x + (area.width.saturating_sub(popup_width)) / 2;
     let popup_y = area.y + (area.height.saturating_sub(popup_height)) / 2;
 
     let popup_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
+    frame.render_widget(Clear, popup_area);
     frame.render_widget(
         Paragraph::new("").style(Style::new().bg(theme.bg)),
         popup_area,
     );
 
-    let block = Block::default()
-        .borders(Borders::ALL)
+    let block = Block::bordered()
         .title(" Command Palette ")
         .border_style(theme.completion_border);
     let inner = block.inner(popup_area);
@@ -227,13 +227,13 @@ pub fn render_help_overlay(frame: &mut Frame, area: Rect, app: &App) {
 
     let popup_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
+    frame.render_widget(Clear, popup_area);
     frame.render_widget(
         Paragraph::new("").style(Style::new().bg(theme.bg)),
         popup_area,
     );
 
-    let block = Block::default()
-        .borders(Borders::ALL)
+    let block = Block::bordered()
         .title(" Help — Keyboard Shortcuts ")
         .border_style(theme.completion_border);
     let inner = block.inner(popup_area);
